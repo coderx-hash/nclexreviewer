@@ -229,6 +229,48 @@
         }
         #rationale-box h4 { color: var(--success); margin-top: 0; margin-bottom: 10px; font-size: 1rem; }
         #rationale-text { color: var(--text-main); font-size: 0.95rem; line-height: 1.5; }
+        
+        /* --- NEW CLIENT NEEDS STYLES --- */
+        .client-mastery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .mastery-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 20px;
+            border-radius: 16px;
+            transition: 0.3s;
+        }
+        .mastery-card:hover {
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.2);
+            transform: translateY(-2px);
+        }
+        .mastery-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+        .mastery-progress-bar {
+            background: var(--bg-input);
+            border-radius: 50px;
+            height: 10px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .mastery-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        .mastery-score {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+        .mastery-score.high { color: var(--success); }
+        .mastery-score.medium { color: var(--warning); }
+        .mastery-score.low { color: var(--danger); }
 
 
         /* --- RESPONSIVE --- */
@@ -365,8 +407,18 @@
             </div>
 
             <div id="tab-client" class="tab-content hidden fade-in">
-                <h2>Client Needs Areas</h2>
-                <p style="color: var(--text-muted);">Detailed breakdown of NCLEX categories coming soon.</p>
+                <h2>🎯 Client Needs Areas Mastery</h2>
+                <p style="color: var(--text-muted); margin-bottom: 30px;">Your personalized performance breakdown based on all questions answered in the CAT Simulator.</p>
+
+                <div id="mastery-grid" class="client-mastery-grid">
+                    </div>
+                
+                <div style="margin-top: 30px;">
+                    <h3 style="color: var(--primary); margin-bottom: 10px; font-size: 1.2rem;">Weakest Area Focus:</h3>
+                    <div id="weakest-area" style="background: rgba(248, 113, 113, 0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-weight: 600;">
+                        Calculating...
+                    </div>
+                </div>
             </div>
 
             <div id="tab-simulator" class="tab-content hidden fade-in">
@@ -450,8 +502,18 @@
         let currentQuestions = [];
         let currentQIndex = 0;
         let currentQuestionData = null; 
+        
+        // Data for Client Needs Mastery (Simulation)
+        const MASTERY_CATEGORIES = [
+            { name: "Safe & Effective Care", key: "Safe Care", color: '#22d3ee' },
+            { name: "Health Promotion", key: "Health Promo", color: '#34d399' },
+            { name: "Psychosocial Integrity", key: "Psychosocial", color: '#818cf8' },
+            { name: "Physiological Integrity", key: "Physiological", color: '#f47171' },
+            { name: "Pharmacology", key: "Pharm", color: '#fbbf24' }
+        ];
 
-        // --- UTILITY FUNCTIONS ---
+
+        // --- UI NAVIGATION ---
 
         function switchTab(el, tabId) {
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -461,9 +523,13 @@
             const targetTab = document.getElementById('tab-' + tabId);
             if(targetTab) targetTab.classList.remove('hidden');
 
-            // Load questions when Simulator tab is selected
             if (tabId === 'simulator' && currentQuestions.length === 0) {
                  setCategory('All'); 
+            }
+            
+            // Call the new mastery function when Client tab is selected
+            if (tabId === 'client') {
+                loadClientNeeds(); 
             }
         }
 
@@ -486,10 +552,9 @@
             qOpts.innerHTML = "";
             qCounter.innerText = "Q: 0 / 0";
             
-            // Hide Rationale box
             document.getElementById('rationale-box').style.display = 'none';
 
-            // 3. Build Query 
+            // 3. Build Query (Collection used by Admin Uploader: nclex_questions)
             let query = db.collection("nclex_questions");
             
             if(cat !== 'All') {
@@ -540,9 +605,10 @@
             const counter = document.getElementById('q-counter');
             const submitBtn = document.getElementById('submit-btn');
 
-            // Reset UI
+            // Reset UI for new question
             submitBtn.disabled = false;
             document.getElementById('rationale-box').style.display = 'none';
+            document.querySelector('.action-bar .btn-outline').disabled = false;
 
 
             // Update Counter and Text
@@ -581,28 +647,27 @@
             const correctIndex = currentQuestionData.correctIndex;
             const submitBtn = document.getElementById('submit-btn');
 
-            // Disable Submit button
+            // Disable interaction
             submitBtn.disabled = true;
+            document.querySelector('.action-bar .btn-outline').disabled = true;
 
-            // Highlight all options to show answer
+            // Highlight answers
             document.querySelectorAll('.option-item').forEach(item => {
-                item.onclick = null; // Disable further clicks
+                item.onclick = null; 
                 const itemIndex = parseInt(item.getAttribute('data-index'));
                 
                 if (itemIndex === correctIndex) {
-                    // Correct Answer (Green)
                     item.style.backgroundColor = 'rgba(52, 211, 153, 0.1)';
                     item.style.borderColor = 'var(--success)';
                     item.querySelector('.option-circle').style.backgroundColor = 'var(--success)';
                     item.querySelector('.option-circle').innerHTML = '<i class="bx bx-check"></i>';
                 } else if (itemIndex === selectedIndex) {
-                    // Incorrect Selection (Red)
                     item.style.backgroundColor = 'rgba(248, 113, 113, 0.1)';
                     item.style.borderColor = 'var(--danger)';
                     item.querySelector('.option-circle').style.backgroundColor = 'var(--danger)';
                     item.querySelector('.option-circle').innerHTML = '<i class="bx bx-x"></i>';
                 } else {
-                     item.style.backgroundColor = 'rgba(51, 65, 85, 0.6)'; // Keep neutral tone
+                     item.style.backgroundColor = 'rgba(51, 65, 85, 0.6)'; 
                      item.style.borderColor = 'rgba(255,255,255,0.05)';
                 }
             });
@@ -617,9 +682,6 @@
             // Feedback
             if (selectedIndex === correctIndex) {
                 confetti({particleCount:100, origin:{y:0.6}});
-                alert("Correct Answer! Check the Rationale below.");
-            } else {
-                alert("Incorrect. Review the Rationale below to learn why.");
             }
 
             // Move to next question after a delay
@@ -627,10 +689,60 @@
                 currentQIndex++;
                 renderQuestion();
                 submitBtn.disabled = false;
-            }, 8000); // 8-second pause to read Rationale
+            }, 8000); 
         }
 
-        // --- AUTH AND PAYMENT LOGIC ---
+        // --- CLIENT NEEDS DATA & RENDERING (SIMULATED FOR NOW) ---
+        function loadClientNeeds() {
+            const grid = document.getElementById('mastery-grid');
+            grid.innerHTML = "<div style='text-align:center; color:var(--text-muted);'>Loading performance data...</div>";
+            
+            // --- SIMULATION DATA ---
+            const simulatedScores = MASTERY_CATEGORIES.map(cat => {
+                const score = Math.floor(Math.random() * 35) + 60; // 60% to 95% score
+                return {
+                    ...cat,
+                    questionsAnswered: Math.floor(Math.random() * 50) + 10,
+                    correctPercentage: score
+                };
+            });
+            
+            let weakestScore = 100;
+            let weakestArea = "All areas look strong!";
+
+            grid.innerHTML = ""; // Clear loading state
+
+            simulatedScores.forEach(item => {
+                const score = item.correctPercentage;
+
+                if (score < weakestScore) {
+                    weakestScore = score;
+                    weakestArea = `${item.name} (${score}%)`;
+                }
+                
+                let scoreClass = 'high';
+                if (score < 75) scoreClass = 'medium';
+                if (score < 65) scoreClass = 'low';
+
+                const card = document.createElement('div');
+                card.className = 'mastery-card';
+                card.innerHTML = `
+                    <div class="mastery-title">${item.name}</div>
+                    <div class="mastery-score ${scoreClass}">${score}%</div>
+                    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom: 15px;">${item.questionsAnswered} Questions Reviewed</p>
+                    
+                    <div class="mastery-progress-bar">
+                        <div class="mastery-fill" style="width: ${score}%; background: ${item.color}; box-shadow: 0 0 10px ${item.color}80;"></div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            document.getElementById('weakest-area').innerText = weakestArea;
+        }
+
+
+        // --- AUTH AND PAYMENT LOGIC (Original functions) ---
 
         function handleLogin() {
             const user = document.getElementById('login-user').value.trim();

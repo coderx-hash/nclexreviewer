@@ -271,6 +271,113 @@
         .mastery-score.high { color: var(--success); }
         .mastery-score.medium { color: var(--warning); }
         .mastery-score.low { color: var(--danger); }
+        
+        /* --- NEW ANALYTICS CHART STYLES --- */
+        .analytics-chart-container {
+            position: relative;
+            height: 300px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 16px;
+            padding: 20px 20px 0 60px; /* Space for Y-axis */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-start;
+        }
+
+        .chart-y-axis {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 60px;
+            padding: 20px 5px 20px 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .chart-bars {
+            width: 100%;
+            height: 90%; /* Leaves space for X labels */
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-bar-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+        }
+
+        .chart-bar {
+            width: 100%;
+            max-width: 40px;
+            background: var(--primary);
+            border-radius: 4px 4px 0 0;
+            transition: height 0.8s ease-out;
+            position: relative;
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -18px;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .chart-labels {
+            width: 100%;
+            height: 20px;
+            display: flex;
+            gap: 15px;
+            padding: 5px 0 0;
+            position: absolute;
+            bottom: 0;
+            left: 60px; /* Align with bars */
+            right: 0;
+        }
+
+        .chart-label-item {
+            flex: 1;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Summary Grid */
+        .analytics-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 25px;
+        }
+        .summary-card {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .summary-title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+        .summary-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+        }
 
 
         /* --- RESPONSIVE --- */
@@ -460,9 +567,39 @@
             </div>
 
             <div id="tab-analytics" class="tab-content hidden fade-in">
-                <h2>Performance Analytics</h2>
-                <div style="height: 300px; background: rgba(30,41,59,0.5); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-top: 20px;">
-                    <p style="color: var(--text-muted);">Chart Visualization Placeholder</p>
+                <h2>📈 Performance Analytics</h2>
+                <p style="color: var(--text-muted); margin-bottom: 30px;">Track your scores and consistency across recent mock exams and practice sessions.</p>
+
+                <h3 style="color: var(--primary); font-size: 1.2rem; margin-bottom: 15px;">Last 5 Quizzes Score</h3>
+                
+                <div class="analytics-chart-container">
+                    <div id="analytics-chart-labels" class="chart-labels">
+                        </div>
+                    <div id="analytics-chart" class="chart-bars">
+                        </div>
+                    <div class="chart-y-axis">
+                        <span>100%</span>
+                        <span>80%</span>
+                        <span>60%</span>
+                        <span>40%</span>
+                        <span>20%</span>
+                        <span>0%</span>
+                    </div>
+                </div>
+                
+                <div class="analytics-summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-title">Average Score</div>
+                        <div class="summary-value" id="avg-score">78%</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-title">Highest Score</div>
+                        <div class="summary-value" id="high-score" style="color: var(--success);">92%</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-title">Recent Trend</div>
+                        <div class="summary-value" id="trend-icon" style="color: var(--success);"><i class='bx bx-up-arrow-alt'></i> Improving</div>
+                    </div>
                 </div>
             </div>
 
@@ -527,9 +664,12 @@
                  setCategory('All'); 
             }
             
-            // Call the new mastery function when Client tab is selected
             if (tabId === 'client') {
                 loadClientNeeds(); 
+            }
+
+            if (tabId === 'analytics') {
+                loadAnalytics(); 
             }
         }
 
@@ -692,14 +832,14 @@
             }, 8000); 
         }
 
-        // --- CLIENT NEEDS DATA & RENDERING (SIMULATED FOR NOW) ---
+        // --- CLIENT NEEDS DATA & RENDERING (SIMULATED) ---
         function loadClientNeeds() {
             const grid = document.getElementById('mastery-grid');
-            grid.innerHTML = "<div style='text-align:center; color:var(--text-muted);'>Loading performance data...</div>";
+            grid.innerHTML = "<div style='text-align:center; color:var(--text-muted);'>Calculating mastery scores...</div>";
             
             // --- SIMULATION DATA ---
             const simulatedScores = MASTERY_CATEGORIES.map(cat => {
-                const score = Math.floor(Math.random() * 35) + 60; // 60% to 95% score
+                const score = Math.floor(Math.random() * 35) + 60; 
                 return {
                     ...cat,
                     questionsAnswered: Math.floor(Math.random() * 50) + 10,
@@ -710,7 +850,7 @@
             let weakestScore = 100;
             let weakestArea = "All areas look strong!";
 
-            grid.innerHTML = ""; // Clear loading state
+            grid.innerHTML = ""; 
 
             simulatedScores.forEach(item => {
                 const score = item.correctPercentage;
@@ -739,6 +879,70 @@
             });
             
             document.getElementById('weakest-area').innerText = weakestArea;
+        }
+
+        // --- ANALYTICS CHART GENERATION (SIMULATED) ---
+        function loadAnalytics() {
+            // Simulated quiz data (scores from the last 5 quizzes)
+            const quizData = [
+                { name: "Quiz 1", score: 75, date: "12/01" },
+                { name: "Quiz 2", score: 82, date: "12/05" },
+                { name: "Quiz 3", score: 70, date: "12/08" },
+                { name: "Quiz 4", score: 88, date: "12/12" },
+                { name: "Quiz 5", score: 92, date: "12/15" }
+            ];
+
+            const chartContainer = document.getElementById('analytics-chart');
+            const labelContainer = document.getElementById('analytics-chart-labels');
+            chartContainer.innerHTML = '';
+            labelContainer.innerHTML = '';
+
+            let totalScore = 0;
+            let highestScore = 0;
+            
+            // --- 1. RENDER BARS ---
+            quizData.forEach((quiz, index) => {
+                const score = quiz.score;
+                totalScore += score;
+                if (score > highestScore) highestScore = score;
+                
+                const barHeight = score * 0.9 + '%'; // Scale from 0 to 90%
+                
+                const barWrapper = document.createElement('div');
+                barWrapper.className = 'chart-bar-wrapper';
+                barWrapper.innerHTML = `
+                    <div class="chart-bar" style="height: ${barHeight}; background: ${score > 85 ? 'var(--success)' : 'var(--primary)'};">
+                        <span class="bar-value">${score}%</span>
+                    </div>
+                `;
+                chartContainer.appendChild(barWrapper);
+
+                const label = document.createElement('div');
+                label.className = 'chart-label-item';
+                label.innerText = `Q${index + 1}`; // Display Quiz 1, Quiz 2, etc.
+                labelContainer.appendChild(label);
+            });
+
+            // --- 2. CALCULATE AND RENDER SUMMARY STATS ---
+            const avgScore = Math.round(totalScore / quizData.length);
+            document.getElementById('avg-score').innerText = `${avgScore}%`;
+            document.getElementById('high-score').innerText = `${highestScore}%`;
+
+            // Trend calculation: Compare last two scores
+            const lastScore = quizData[quizData.length - 1].score;
+            const secondLastScore = quizData[quizData.length - 2].score;
+            const trendEl = document.getElementById('trend-icon');
+
+            if (lastScore > secondLastScore) {
+                trendEl.innerHTML = `<i class='bx bx-trending-up'></i> UP`;
+                trendEl.style.color = 'var(--success)';
+            } else if (lastScore < secondLastScore) {
+                trendEl.innerHTML = `<i class='bx bx-trending-down'></i> DOWN`;
+                trendEl.style.color = 'var(--danger)';
+            } else {
+                trendEl.innerHTML = `<i class='bx bx-minus'></i> Stable`;
+                trendEl.style.color = 'var(--warning)';
+            }
         }
 
 

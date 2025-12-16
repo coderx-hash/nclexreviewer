@@ -1,1 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Nursify | NCLEX Elite Prep</title>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            /* COLOR PALETTE */
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
+            --bg-input: #334155;
+            
+            --primary: #22d3ee;       /* Cyan */
+            --primary-dark: #0891b2;  
+            --primary-glow: rgba(34, 211, 238, 0.4);
+            
+            --accent: #818cf8;        /* Indigo */
+            --success: #34d399;       
+            --warning: #fbbf24;       
+            --danger: #f87171;        
+            
+            --text-main: #f8fafc;     
+            --text-muted: #94a3b8;    
+            
+            --font: 'Plus Jakarta Sans', sans-serif;
+            --radius: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* --- BACKGROUND FX (For Login Page Only) --- */
+        .bg-mesh {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(34, 211, 238, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(129, 140, 248, 0.08), transparent 25%);
+        }
+
+        /* --- UTILS --- */
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        button { cursor: pointer; border: none; font-family: inherit; transition: 0.2s; outline: none; }
+        input, select { font-family: inherit; outline: none; }
+
+        /* --- LANDING / AUTH SPLIT SCREEN (UNCHANGED) --- */
+        .landing-wrapper {
+            display: flex; width: 100%; height: 100%;
+        }
+        
+        /* Left Side: Marketing */
+        .landing-hero {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.6)), url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+        .hero-badge {
+            display: inline-block; padding: 8px 16px; background: rgba(34, 211, 238, 0.1); 
+            color: var(--primary); border: 1px solid var(--primary-dark); 
+            border-radius: 50px; font-size: 0.85rem; font-weight: 700; margin-bottom: 20px; width: fit-content;
+        }
+        .hero-title {
+            font-size: 3.5rem; font-weight: 800; line-height: 1.1; margin-bottom: 20px;
+            background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero-desc { font-size: 1.2rem; color: var(--text-muted); line-height: 1.6; max-width: 500px; margin-bottom: 40px; }
+        
+        /* Right Side: Login/Form */
+        .landing-auth {
+            width: 500px;
+            background: var(--bg-body);
+            border-left: 1px solid rgba(255,255,255,0.05);
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Login Card Styles */
+        .auth-header { margin-bottom: 30px; text-align: center; }
+        .logo-box {
+            width: 60px; height: 60px; background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 16px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;
+            font-size: 30px; color: #fff; box-shadow: 0 0 20px var(--primary-glow);
+        }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
+        .input-field {
+            width: 100%; padding: 16px; background: var(--bg-input); border: 1px solid transparent;
+            border-radius: 12px; color: white; font-size: 1rem; transition: 0.3s;
+        }
+        .input-field:focus { border-color: var(--primary); background: var(--bg-card); }
+        
+        .btn-full {
+            width: 100%; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 1rem; margin-top: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-primary { background: var(--primary); color: #0f172a; box-shadow: 0 4px 15px var(--primary-glow); }
+        .btn-primary:hover { background: #67e8f9; transform: translateY(-2px); }
+        .btn-outline { background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); }
+        .btn-outline:hover { border-color: var(--text-main); color: var(--text-main); }
+        .btn-gold { background: linear-gradient(135deg, #fbbf24, #d97706); color: #000; box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4); }
+
+        /* --- SUBSCRIPTION UI --- */
+        .pricing-grid { display: grid; gap: 15px; margin-bottom: 20px; }
+        .plan-card {
+            background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05); padding: 20px;
+            border-radius: 16px; cursor: pointer; transition: 0.3s; position: relative; overflow: hidden;
+        }
+        .plan-card:hover { border-color: var(--primary); transform: translateY(-3px); }
+        .plan-card.selected { border-color: var(--success); background: rgba(52, 211, 153, 0.05); }
+        
+        .plan-badge { 
+            position: absolute; top: 0; right: 0; background: var(--success); color: #000; 
+            font-size: 0.7rem; padding: 4px 10px; font-weight: 800; border-bottom-left-radius: 10px;
+        }
+        
+        .price-text { font-size: 1.5rem; font-weight: 800; color: white; }
+        .price-sub { font-size: 0.85rem; color: var(--text-muted); }
+
+        /* --- APP DASHBOARD & QUESTION UI (UPDATED FOR NCLEX VIBE) --- */
+        .app-layout { display: flex; width: 100%; max-width: 1400px; height: 100vh; position: relative; }
+        
+        .sidebar { 
+            width: 260px; 
+            background: rgba(15, 23, 42, 0.95); /* Solid dark for contrast */
+            border-right: 1px solid rgba(255,255,255,0.05); 
+            padding: 30px 20px; 
+            display: flex; flex-direction: column; gap: 10px; 
+            z-index: 10; /* Ensure sidebar stays on top of content bg */
+        }
+        
+        /* NEW: Medical Background for Main Content Area */
+        .main-content { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 30px; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative;
+            /* Professional Medical Background with Dark Blue Overlay */
+            background: 
+                linear-gradient(to bottom, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.95)),
+                url('https://images.unsplash.com/photo-1584982751601-97dcc096659c?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        
+        .nav-item { padding: 14px 20px; border-radius: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 12px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .nav-item:hover { color: var(--text-main); background: rgba(255,255,255,0.03); }
+        .nav-item.active { background: rgba(34, 211, 238, 0.1); color: var(--primary); border: 1px solid rgba(34, 211, 238, 0.2); }
+        
+        /* Question Card Style - Updated for Glassmorphism */
+        .question-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
+        .q-badge {
+            background: rgba(30, 41, 59, 0.8); /* Slight transparency */
+            backdrop-filter: blur(5px);
+            padding: 5px 12px; border-radius: 8px; font-size: 0.8rem;
+            color: var(--primary); border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .question-card {
+            /* Glassmorphism Effect for professional look */
+            background: rgba(30, 41, 59, 0.75); 
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .question-text {
+            font-size: 1.1rem; line-height: 1.7; font-weight: 500; color: #fff; margin-bottom: 25px;
+        }
+
+        .options-list { display: grid; gap: 12px; }
+        
+        .option-item {
+            display: flex; align-items: center; gap: 15px;
+            width: 100%; padding: 18px 20px; 
+            /* Glassmorphism for options too */
+            background: rgba(51, 65, 85, 0.6);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px; 
+            color: var(--text-muted); 
+            font-size: 0.95rem; 
+            cursor: pointer; 
+            transition: 0.2s;
+        }
+        .option-item:hover {
+            background: rgba(62, 76, 99, 0.8);
+            color: #fff;
+            border-color: rgba(255,255,255,0.1);
+        }
+        .option-item.selected {
+            background: rgba(34, 211, 238, 0.15);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.2);
+        }
+        .option-circle {
+            width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--text-muted);
+            display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;
+        }
+        .option-item.selected .option-circle {
+            border-color: var(--primary); background: var(--primary); color: #000;
+        }
+
+        .action-bar {
+            display: flex; justify-content: flex-end; gap: 15px; margin-top: 10px;
+        }
+
+        .timer-bar { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 6px; background: var(--danger); z-index: 1000; 
+            transition: width 1s linear; display: none;
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 900px) {
+            .landing-hero { display: none; }
+            .landing-auth { width: 100%; border: none; }
+            .sidebar { display: none; } 
+            .app-layout { flex-direction: column; }
+            .main-content { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-mesh"></div>
+    
+    <div id="demo-timer-bar" class="timer-bar"></div>
+
+    <div id="view-landing" class="landing-wrapper fade-in">
+        
+        <div class="landing-hero">
+            <div class="hero-badge">NCLEX-RN & PN PREP</div>
+            <h1 class="hero-title">Defy the Odds.<br>Secure Your License.</h1>
+            <p class="hero-desc">
+                Stop guessing. Start mastering. Our adaptive algorithm pinpoints your weaknesses and turns them into strengths. 
+                <span style="color: var(--primary); font-weight: 700;">Join thousands of future USRNs today.</span>
+            </p>
+            <div style="display: flex; gap: 20px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class='bx bxs-check-shield' style="color: var(--success); font-size: 1.5rem;"></i>
+                    <span style="font-weight: 600;">98% Pass Rate</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class='bx bxs-brain' style="color: var(--accent); font-size: 1.5rem;"></i>
+                    <span style="font-weight: 600;">CAT Simulator</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="landing-auth">
+            
+            <div id="section-login" class="fade-in">
+                <div class="auth-header">
+                    <div class="logo-box"><i class='bx bxs-capsule'></i></div>
+                    <h2>Member Login</h2>
+                    <p style="color: var(--text-muted);">Enter your credentials to continue.</p>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Email</label>
+                    <input type="text" id="login-user" class="input-field" placeholder="nurse@gmail.com">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Password</label>
+                    <input type="password" id="login-pass" class="input-field" placeholder="••••••••">
+                </div>
+
+                <button onclick="handleLogin()" class="btn-full btn-primary">Sign In <i class='bx bx-log-in'></i></button>
+                
+                <div style="text-align: center; margin: 20px 0; color: var(--text-muted); font-size: 0.9rem;">OR</div>
+                
+                <button onclick="showSubscription()" class="btn-full btn-gold">
+                    <i class='bx bxs-star'></i> Get Premium Access
+                </button>
+                <button onclick="startDemo()" class="btn-full btn-outline" style="margin-top: 10px;">
+                    Try Free Demo (1 Min)
+                </button>
+                
+                <p id="login-msg" style="color: var(--danger); text-align: center; margin-top: 15px; font-size: 0.9rem;"></p>
+            </div>
+
+            <div id="section-pricing" class="hidden fade-in">
+                <button onclick="backToLogin()" style="background:none; color: var(--text-muted); margin-bottom: 20px;">
+                    <i class='bx bx-arrow-back'></i> Back
+                </button>
+                <h2 style="margin-bottom: 5px;">Select Plan</h2>
+                <p style="color: var(--text-muted); margin-bottom: 20px;">Invest in your future. No hidden fees.</p>
+
+                <div class="pricing-grid">
+                    <div class="plan-card" onclick="selectPlan(this, '499')">
+                        <div class="price-text">₱499</div>
+                        <div class="price-sub">3 Months Access</div>
+                    </div>
+                    <div class="plan-card" onclick="selectPlan(this, '999')">
+                        <div class="price-text">₱999</div>
+                        <div class="price-sub">6 Months Access</div>
+                    </div>
+                    <div class="plan-card" onclick="selectPlan(this, '1799')">
+                        <div class="plan-badge">BEST VALUE</div>
+                        <div class="price-text">₱1,799</div>
+                        <div class="price-sub">1 Year Access</div>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="selected-price">
+                <button id="btn-next-pay" onclick="showPaymentForm()" class="btn-full btn-primary" disabled style="opacity: 0.5;">
+                    Next Step <i class='bx bx-right-arrow-alt'></i>
+                </button>
+            </div>
+
+            <div id="section-payment" class="hidden fade-in">
+                <button onclick="showSubscription()" style="background:none; color: var(--text-muted); margin-bottom: 20px;">
+                    <i class='bx bx-arrow-back'></i> Change Plan
+                </button>
+                
+                <div style="background: rgba(34, 211, 238, 0.1); border: 1px solid var(--primary); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                    <h4 style="color: var(--primary); margin-bottom: 5px;">Instruction:</h4>
+                    <p style="font-size: 0.9rem; margin-bottom: 5px;">Send <b id="pay-amount">₱0</b> via GCash to:</p>
+                    <div style="font-size: 1.1rem; font-weight: 800; color: white;">0948 374 8304</div>
+                </div>
+
+                <form onsubmit="submitPayment(event)">
+                    <div class="input-group">
+                        <label class="input-label">GCash Sender Name</label>
+                        <input type="text" id="pay-name" required class="input-field" placeholder="Ex. Juan Dela Cruz">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Sender Mobile Number</label>
+                        <input type="tel" id="pay-number" required class="input-field" placeholder="09xxxxxxxxx">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">GCash Reference No.</label>
+                        <input type="text" id="pay-ref" required class="input-field" placeholder="Ex. 00123456789">
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                    <h4 style="margin-bottom: 15px;">Create Your Account</h4>
+                    <div class="input-group">
+                        <label class="input-label">Desired Email</label>
+                        <input type="email" id="pay-email" required class="input-field" placeholder="nurse@example.com">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Desired Password</label>
+                        <input type="password" id="pay-pass" required class="input-field" placeholder="New Password">
+                    </div>
+                    
+                    <button type="submit" id="btn-submit-pay" class="btn-full btn-success" style="background: var(--success); color: #000;">
+                        Submit Application <i class='bx bx-check-circle'></i>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="view-app" class="app-layout hidden">
+        <aside class="sidebar">
+            <div style="font-size: 1.4rem; font-weight: 800; color: white; margin-bottom: 30px; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 30px; height: 30px; background: var(--primary); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:#000;">
+                    <i class='bx bxs-capsule'></i>
+                </div>
+                NURSIFY
+            </div>
+            
+            <div class="nav-item active"><i class='bx bxs-dashboard'></i> Dashboard</div>
+            <div class="nav-item"><i class='bx bxs-layer'></i> Client Needs</div>
+            <div class="nav-item"><i class='bx bx-laptop'></i> CAT Simulator</div>
+            <div class="nav-item"><i class='bx bxs-bar-chart-alt-2'></i> Analytics</div>
+            
+            <div style="flex:1"></div>
+            
+            <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 5px;">ACCOUNT STATUS</div>
+                <div id="sub-status" style="font-weight: 700; color: var(--success); font-size: 0.95rem;">Premium Active</div>
+                <div id="sub-days" style="font-size: 0.8rem; margin-top: 2px; color: var(--text-muted);">90 Days Remaining</div>
+            </div>
+            <div class="nav-item" onclick="logout()" style="color: var(--danger);"><i class='bx bx-log-out'></i> Logout</div>
+        </aside>
+
+        <main class="main-content">
+            <div class="question-header fade-in">
+                <div>
+                    <h2 style="font-size: 1.5rem; color: white;">CAT Simulator</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Module: Physiological Integrity</p>
+                </div>
+                <div class="q-badge">Question 1 / 75</div>
+            </div>
+
+            <div class="question-card fade-in">
+                <div class="question-text">
+                    A client with chronic heart failure is prescribed digoxin. Which assessment finding indicates to the nurse that the client is experiencing digoxin toxicity?
+                </div>
+                
+                <div class="options-list">
+                    <div class="option-item" onclick="selectOption(this)">
+                        <div class="option-circle">A</div>
+                        <div>Increased appetite and weight gain</div>
+                    </div>
+                    <div class="option-item" onclick="selectOption(this)">
+                        <div class="option-circle">B</div>
+                        <div>Visual disturbances like yellow halos</div>
+                    </div>
+                    <div class="option-item" onclick="selectOption(this)">
+                        <div class="option-circle">C</div>
+                        <div>Blood pressure of 140/90 mmHg</div>
+                    </div>
+                    <div class="option-item" onclick="selectOption(this)">
+                        <div class="option-circle">D</div>
+                        <div>Serum potassium level of 4.5 mEq/L</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-bar fade-in">
+                <button class="btn-full btn-outline" style="width: auto; padding: 12px 25px;">Previous</button>
+                <button class="btn-full btn-primary" onclick="submitAnswer()" style="width: auto; padding: 12px 35px;">Submit Answer</button>
+            </div>
+        </main>
+    </div>
+
+    <div id="view-expired" class="hidden" style="position:fixed; inset:0; background: rgba(0,0,0,0.9); backdrop-filter: blur(5px); z-index:2000; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px;">
+        <div style="max-width: 400px; animation: fadeIn 0.5s;">
+            <i class='bx bxs-time-five' style="font-size: 4rem; color: var(--danger); margin-bottom: 20px;"></i>
+            <h2>Time's Up!</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">
+                Your Demo access has expired. To continue mastering the NCLEX, please subscribe to a premium plan.
+            </p>
+            <button onclick="forceSubscription()" class="btn-full btn-gold">Unlock Full Access</button>
+        </div>
+    </div>
+
+    <script>
+        // =======================================================
+        // 1. FIREBASE CONFIGURATION
+        // =======================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBnNERL2mKSmPPePf1CHe6aIx7KwhQ-cEc",
+            authDomain: "nlcexreviewer.firebaseapp.com",
+            projectId: "nlcexreviewer",
+            storageBucket: "nlcexreviewer.firebasestorage.app",
+            messagingSenderId: "707153074336",
+            appId: "1:707153074336:web:1cfc48a8cc4ec6679cd1c5",
+            measurementId: "G-ECZ2MQ0Z1G"
+        };
+
+        // Initialize Firebase
+        let auth, db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log("Firebase Initialized");
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+        }
+
+        // =======================================================
+        // 2. LOGIC
+        // =======================================================
+        const DEMO_LIMIT_MS = 60 * 1000;
+        let demoInterval;
+
+        // --- UPDATED LOGIN LOGIC (Database Check) ---
+        function handleLogin() {
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+            const msg = document.getElementById('login-msg');
+
+            msg.innerText = "Checking Database...";
+            msg.style.color = "var(--text-muted)";
+
+            // 1. ADMIN BACKDOOR (For blocked IP / Testing)
+            if(user === 'admin' && pass === 'admin') {
+                loginSuccess("Admin Mode", "Unlimited Access", false);
+                return;
+            }
+
+            // 2. CHECK FIRESTORE DATABASE (Payments Collection)
+            db.collection("payments")
+                .where("email", "==", user)
+                .where("pass", "==", pass)
+                .where("status", "==", "active") 
+                .get()
+                .then((querySnapshot) => {
+                    if (!querySnapshot.empty) {
+                        // FOUND!
+                        console.log("User found in database!");
+                        loginSuccess("Premium Active", "Access Granted", false);
+                    } else {
+                        // NOT FOUND
+                        msg.innerText = "Invalid Creds or Account not Active.";
+                        msg.style.color = "var(--danger)";
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error getting documents: ", error);
+                    msg.innerText = "Error: " + error.message;
+                });
+        }
+
+        function loginSuccess(statusText, daysText, isDemo) {
+            document.getElementById('view-landing').classList.add('hidden');
+            document.getElementById('view-app').classList.remove('hidden');
+            
+            document.getElementById('sub-status').innerText = statusText;
+            document.getElementById('sub-days').innerText = daysText;
+            
+            if(isDemo) {
+                document.getElementById('sub-status').style.color = 'var(--warning)';
+                startDemoTimer();
+            }
+        }
+
+        function logout() {
+            location.reload();
+        }
+
+        // --- PAYMENT SUBMISSION ---
+        function submitPayment(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-pay');
+            btn.innerHTML = "Sending...";
+            btn.disabled = true;
+
+            const paymentData = {
+                planPrice: document.getElementById('selected-price').value,
+                gcashName: document.getElementById('pay-name').value,
+                gcashNumber: document.getElementById('pay-number').value,
+                refNumber: document.getElementById('pay-ref').value,
+                email: document.getElementById('pay-email').value,
+                pass: document.getElementById('pay-pass').value,
+                status: 'pending', // Pending admin approval
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            db.collection("payments").add(paymentData)
+            .then((docRef) => {
+                alert("Application Sent! ID: " + docRef.id + "\nPlease wait for Admin activation.");
+                location.reload();
+            })
+            .catch((error) => {
+                alert("Error: " + error.message);
+                btn.innerHTML = "Try Again";
+                btn.disabled = false;
+            });
+        }
+
+        // --- DASHBOARD UI HELPERS ---
+        function selectOption(el) {
+            document.querySelectorAll('.option-item').forEach(item => item.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        function submitAnswer() {
+            const selected = document.querySelector('.option-item.selected');
+            if(!selected) return alert("Please select an answer.");
+            
+            if(selected.innerHTML.includes("Visual disturbances")) {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                alert("Correct!");
+            } else {
+                alert("Incorrect.");
+            }
+        }
+
+        // --- SUBSCRIPTION FLOW UI ---
+        function showSubscription() {
+            document.getElementById('section-login').classList.add('hidden');
+            document.getElementById('section-pricing').classList.remove('hidden');
+            document.getElementById('section-payment').classList.add('hidden');
+        }
+        function backToLogin() {
+            document.getElementById('section-pricing').classList.add('hidden');
+            document.getElementById('section-login').classList.remove('hidden');
+        }
+        function selectPlan(card, price) {
+            document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            document.getElementById('selected-price').value = price;
+            document.getElementById('btn-next-pay').disabled = false;
+            document.getElementById('btn-next-pay').style.opacity = '1';
+        }
+        function showPaymentForm() {
+            document.getElementById('pay-amount').innerText = "₱" + document.getElementById('selected-price').value;
+            document.getElementById('section-pricing').classList.add('hidden');
+            document.getElementById('section-payment').classList.remove('hidden');
+        }
+
+        // --- DEMO LOGIC ---
+        function startDemo() {
+            if(localStorage.getItem('nursify_demo_used') === 'true') return alert("Demo expired.");
+            if(!localStorage.getItem('nursify_demo_start')) localStorage.setItem('nursify_demo_start', Date.now());
+            loginSuccess("Demo Mode", "1 Minute Access", true);
+        }
+        function startDemoTimer() {
+            const bar = document.getElementById('demo-timer-bar');
+            bar.style.display = 'block';
+            demoInterval = setInterval(() => {
+                const elapsed = Date.now() - parseInt(localStorage.getItem('nursify_demo_start'));
+                const remaining = DEMO_LIMIT_MS - elapsed;
+                bar.style.width = ((remaining / DEMO_LIMIT_MS) * 100) + "%";
+                if (remaining <= 0) lockoutUser();
+            }, 100);
+        }
+        function lockoutUser() {
+            clearInterval(demoInterval);
+            localStorage.setItem('nursify_demo_used', 'true');
+            document.getElementById('view-app').classList.add('hidden');
+            document.getElementById('view-expired').classList.remove('hidden');
+        }
+        function forceSubscription() {
+            document.getElementById('view-expired').classList.add('hidden');
+            document.getElementById('view-landing').classList.remove('hidden');
+            showSubscription();
+        }
+    </script>
+</body>
+</html>

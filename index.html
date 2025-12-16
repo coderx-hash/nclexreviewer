@@ -19,20 +19,20 @@
     <style>
         :root {
             /* COLOR PALETTE */
-            --bg-body: #0f172a;        
-            --bg-card: #1e293b;        
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
             --bg-input: #334155;
             
-            --primary: #22d3ee;        /* Cyan */
-            --primary-dark: #0891b2;   
+            --primary: #22d3ee;      /* Cyan */
+            --primary-dark: #0891b2;  
             --primary-glow: rgba(34, 211, 238, 0.4);
             
-            --accent: #818cf8;        /* Indigo */
-            --success: #34d399;        
-            --warning: #fbbf24;        
-            --danger: #f87171;        
+            --accent: #818cf8;      
+            --success: #34d399;       
+            --warning: #fbbf24;       
+            --danger: #f87171;       
             
-            --text-main: #f8fafc;      
+            --text-main: #f8fafc;     
             --text-muted: #94a3b8;     
             
             --font: 'Plus Jakarta Sans', sans-serif;
@@ -217,6 +217,20 @@
         .option-item.selected .option-circle { border-color: var(--primary); background: var(--primary); color: #000; }
         .action-bar { display: flex; justify-content: flex-end; gap: 15px; margin-top: 10px; }
 
+        /* Rationale Styles */
+        #rationale-box {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            border-left: 5px solid var(--success);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            display: none; /* Hidden by default */
+        }
+        #rationale-box h4 { color: var(--success); margin-top: 0; margin-bottom: 10px; font-size: 1rem; }
+        #rationale-text { color: var(--text-main); font-size: 0.95rem; line-height: 1.5; }
+
+
         /* --- RESPONSIVE --- */
         @media (max-width: 900px) {
             .landing-hero { display: none; }
@@ -361,9 +375,9 @@
                         <h2 style="font-size: 1.5rem; color: white;">NCLEX Simulator</h2>
                         <p style="color: var(--text-muted); font-size: 0.9rem;">Select a category to filter questions.</p>
                     </div>
-                    <div class="q-badge" id="q-counter">Q: 1 / 75</div>
+                    <div class="q-badge" id="q-counter">Q: 0 / 0</div>
                 </div>
-            
+                
                 <div class="category-scroller fade-in">
                     <button class="cat-chip active" onclick="setCategory('All')">All Topics</button>
                     <button class="cat-chip" onclick="setCategory('Safe Care')">Safe & Effective Care</button>
@@ -372,22 +386,24 @@
                     <button class="cat-chip" onclick="setCategory('Physiological')">Physiological</button>
                     <button class="cat-chip" onclick="setCategory('Pharm')">Pharmacology</button>
                 </div>
-            
+                
                 <div class="question-card fade-in">
                     <div class="question-text" id="display-question">
-                        A client with chronic heart failure is prescribed digoxin. Which assessment finding indicates to the nurse that the client is experiencing digoxin toxicity?
+                        Click 'All Topics' above to load questions from the database.
                     </div>
                     <div class="options-list" id="display-options">
-                        <div class="option-item" onclick="selectOption(this)"><div class="option-circle">A</div><div>Increased appetite and weight gain</div></div>
-                        <div class="option-item" onclick="selectOption(this)"><div class="option-circle">B</div><div>Visual disturbances like yellow halos</div></div>
-                        <div class="option-item" onclick="selectOption(this)"><div class="option-circle">C</div><div>Blood pressure of 140/90 mmHg</div></div>
-                        <div class="option-item" onclick="selectOption(this)"><div class="option-circle">D</div><div>Serum potassium level of 4.5 mEq/L</div></div>
+                        <div class="option-item"><div class="option-circle">A</div><div>Waiting for questions...</div></div>
+                    </div>
+
+                    <div id="rationale-box">
+                        <h4>Rationale</h4>
+                        <div id="rationale-text"></div>
                     </div>
                 </div>
-            
+                
                 <div class="action-bar fade-in">
                     <button class="btn-full btn-outline" style="width: auto; padding: 12px 25px;">Skip</button>
-                    <button class="btn-full btn-primary" onclick="submitAnswer()" style="width: auto; padding: 12px 35px;">Submit Answer</button>
+                    <button class="btn-full btn-primary" onclick="submitAnswer()" style="width: auto; padding: 12px 35px;" id="submit-btn">Submit Answer</button>
                 </div>
             </div>
 
@@ -427,36 +443,195 @@
             db = firebase.firestore();
         } catch (e) { console.error(e); }
 
-        // --- GLOBAL LOGIC ---
+        // --- GLOBAL STATE & LOGIC ---
         const DEMO_LIMIT_MS = 60 * 1000;
         let demoInterval;
+        
+        let currentQuestions = [];
+        let currentQIndex = 0;
+        let currentQuestionData = null; 
 
-        // --- NEW: SIDEBAR NAVIGATION LOGIC ---
+        // --- UTILITY FUNCTIONS ---
+
         function switchTab(el, tabId) {
-            // 1. Remove active class from all nav items
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            // 2. Add active class to clicked item (or passed element)
             if(el) el.classList.add('active');
 
-            // 3. Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-            // 4. Show target content
-            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            const targetTab = document.getElementById('tab-' + tabId);
+            if(targetTab) targetTab.classList.remove('hidden');
+
+            // Load questions when Simulator tab is selected
+            if (tabId === 'simulator' && currentQuestions.length === 0) {
+                 setCategory('All'); 
+            }
         }
 
-        // --- CATEGORY FILTER LOGIC ---
+        // --- CORE: FETCHING QUESTIONS FROM DATABASE ---
         function setCategory(cat) {
+            // 1. UI Updates (Active Chips)
             document.querySelectorAll('.cat-chip').forEach(btn => {
                 btn.classList.remove('active');
                 if(btn.innerText.includes(cat) || (cat === 'All' && btn.innerText === 'All Topics')) {
                     btn.classList.add('active');
                 }
             });
-            // Logic to fetch new questions from Firebase would go here
-            console.log("Category set to:", cat);
+
+            // 2. Show Loading State
+            const qText = document.getElementById('display-question');
+            const qOpts = document.getElementById('display-options');
+            const qCounter = document.getElementById('q-counter');
+            
+            qText.innerHTML = "<i><i class='bx bx-loader-alt bx-spin'></i> Fetching questions...</i>";
+            qOpts.innerHTML = "";
+            qCounter.innerText = "Q: 0 / 0";
+            
+            // Hide Rationale box
+            document.getElementById('rationale-box').style.display = 'none';
+
+            // 3. Build Query 
+            let query = db.collection("nclex_questions");
+            
+            if(cat !== 'All') {
+                query = query.where("category", "==", cat);
+            }
+
+            // 4. Fetch Data
+            query.limit(100).get().then((snap) => {
+                currentQuestions = []; 
+                
+                if(snap.empty) {
+                    qText.innerText = `No questions available for ${cat} yet.`;
+                    return;
+                }
+
+                snap.forEach(doc => {
+                    let data = doc.data();
+                    data.id = doc.id;
+                    currentQuestions.push(data);
+                });
+
+                // Randomize and start
+                currentQuestions.sort(() => Math.random() - 0.5);
+                currentQIndex = 0;
+                renderQuestion();
+            }).catch(e => {
+                console.error("Firebase Fetch Error:", e);
+                qText.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`;
+            });
         }
 
-        // --- LOGIN & AUTH ---
+        // --- CORE: RENDERING QUESTION ---
+        function renderQuestion() {
+            if(currentQuestions.length === 0 || currentQIndex >= currentQuestions.length) {
+                document.getElementById('display-question').innerText = "Test Complete! No more questions in this category.";
+                document.getElementById('display-options').innerHTML = "";
+                document.getElementById('q-counter').innerText = `Q: ${currentQuestions.length} / ${currentQuestions.length}`;
+                document.getElementById('rationale-box').style.display = 'none';
+                document.getElementById('submit-btn').disabled = true;
+                return;
+            }
+            
+            currentQuestionData = currentQuestions[currentQIndex];
+            const data = currentQuestionData;
+
+            const qText = document.getElementById('display-question');
+            const qOpts = document.getElementById('display-options');
+            const counter = document.getElementById('q-counter');
+            const submitBtn = document.getElementById('submit-btn');
+
+            // Reset UI
+            submitBtn.disabled = false;
+            document.getElementById('rationale-box').style.display = 'none';
+
+
+            // Update Counter and Text
+            qText.innerText = data.question;
+            counter.innerText = `Q: ${currentQIndex + 1} / ${currentQuestions.length}`;
+
+            // Update Options
+            let optsHtml = "";
+            const letters = ["A", "B", "C", "D"];
+            
+            data.options.forEach((opt, index) => {
+                if(opt && opt.trim() !== '') {
+                    optsHtml += `
+                        <div class="option-item" data-index="${index}" onclick="selectOption(this)">
+                            <div class="option-circle">${letters[index]}</div>
+                            <div>${opt}</div>
+                        </div>
+                    `;
+                }
+            });
+            
+            qOpts.innerHTML = optsHtml;
+        }
+
+        // --- CORE: ANSWER SELECTION & SUBMISSION ---
+        function selectOption(el) {
+            document.querySelectorAll('.option-item').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+        
+        function submitAnswer() {
+            const selected = document.querySelector('.option-item.selected');
+            if(!selected) return alert("Select an answer first!");
+            
+            const selectedIndex = parseInt(selected.getAttribute('data-index'));
+            const correctIndex = currentQuestionData.correctIndex;
+            const submitBtn = document.getElementById('submit-btn');
+
+            // Disable Submit button
+            submitBtn.disabled = true;
+
+            // Highlight all options to show answer
+            document.querySelectorAll('.option-item').forEach(item => {
+                item.onclick = null; // Disable further clicks
+                const itemIndex = parseInt(item.getAttribute('data-index'));
+                
+                if (itemIndex === correctIndex) {
+                    // Correct Answer (Green)
+                    item.style.backgroundColor = 'rgba(52, 211, 153, 0.1)';
+                    item.style.borderColor = 'var(--success)';
+                    item.querySelector('.option-circle').style.backgroundColor = 'var(--success)';
+                    item.querySelector('.option-circle').innerHTML = '<i class="bx bx-check"></i>';
+                } else if (itemIndex === selectedIndex) {
+                    // Incorrect Selection (Red)
+                    item.style.backgroundColor = 'rgba(248, 113, 113, 0.1)';
+                    item.style.borderColor = 'var(--danger)';
+                    item.querySelector('.option-circle').style.backgroundColor = 'var(--danger)';
+                    item.querySelector('.option-circle').innerHTML = '<i class="bx bx-x"></i>';
+                } else {
+                     item.style.backgroundColor = 'rgba(51, 65, 85, 0.6)'; // Keep neutral tone
+                     item.style.borderColor = 'rgba(255,255,255,0.05)';
+                }
+            });
+
+            // Display Rationale
+            const rationaleBox = document.getElementById('rationale-box');
+            const rationaleText = document.getElementById('rationale-text');
+            
+            rationaleText.innerHTML = currentQuestionData.rationale || "No detailed rationale provided for this question.";
+            rationaleBox.style.display = 'block';
+
+            // Feedback
+            if (selectedIndex === correctIndex) {
+                confetti({particleCount:100, origin:{y:0.6}});
+                alert("Correct Answer! Check the Rationale below.");
+            } else {
+                alert("Incorrect. Review the Rationale below to learn why.");
+            }
+
+            // Move to next question after a delay
+            setTimeout(() => {
+                currentQIndex++;
+                renderQuestion();
+                submitBtn.disabled = false;
+            }, 8000); // 8-second pause to read Rationale
+        }
+
+        // --- AUTH AND PAYMENT LOGIC ---
+
         function handleLogin() {
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
@@ -482,7 +657,6 @@
         }
         function logout() { location.reload(); }
 
-        // --- PAYMENT ---
         function submitPayment(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-pay');
@@ -500,19 +674,6 @@
             .catch(e => { alert(e.message); btn.disabled = false; });
         }
 
-        // --- UI HELPERS ---
-        function selectOption(el) {
-            document.querySelectorAll('.option-item').forEach(i => i.classList.remove('selected'));
-            el.classList.add('selected');
-        }
-        function submitAnswer() {
-            const selected = document.querySelector('.option-item.selected');
-            if(!selected) return alert("Select an answer!");
-            if(selected.innerHTML.includes("Visual disturbances")) { confetti({particleCount:100, origin:{y:0.6}}); alert("Correct!"); }
-            else alert("Incorrect.");
-        }
-
-        // --- NAV HELPERS ---
         function showSubscription() {
             document.getElementById('section-login').classList.add('hidden');
             document.getElementById('section-pricing').classList.remove('hidden');
@@ -534,16 +695,33 @@
             document.getElementById('section-pricing').classList.add('hidden');
             document.getElementById('section-payment').classList.remove('hidden');
         }
-        function startDemo() { loginSuccess("Demo Mode", "1 Min Access", true); }
+        function startDemo() { 
+            loginSuccess("Demo Mode", "1 Min Access", true); 
+        }
         function startDemoTimer() {
             const bar = document.getElementById('demo-timer-bar');
             bar.style.display = 'block';
+            
+            let demoStartTime = localStorage.getItem('nursify_demo_start');
+            if (!demoStartTime) {
+                demoStartTime = Date.now();
+                localStorage.setItem('nursify_demo_start', demoStartTime);
+            } else {
+                demoStartTime = parseInt(demoStartTime);
+            }
+
             demoInterval = setInterval(() => {
-                const elapsed = Date.now() - (localStorage.getItem('nursify_demo_start') || Date.now());
-                if(elapsed > DEMO_LIMIT_MS) { clearInterval(demoInterval); document.getElementById('view-app').classList.add('hidden'); document.getElementById('view-expired').classList.remove('hidden'); }
-                else bar.style.width = ((DEMO_LIMIT_MS - elapsed) / DEMO_LIMIT_MS * 100) + "%";
+                const elapsed = Date.now() - demoStartTime;
+                if(elapsed > DEMO_LIMIT_MS) { 
+                    clearInterval(demoInterval); 
+                    document.getElementById('view-app').classList.add('hidden'); 
+                    document.getElementById('view-expired').classList.remove('hidden');
+                    localStorage.removeItem('nursify_demo_start'); 
+                }
+                else {
+                    bar.style.width = ((DEMO_LIMIT_MS - elapsed) / DEMO_LIMIT_MS * 100) + "%";
+                }
             }, 100);
-            if(!localStorage.getItem('nursify_demo_start')) localStorage.setItem('nursify_demo_start', Date.now());
         }
         function forceSubscription() {
             document.getElementById('view-expired').classList.add('hidden');

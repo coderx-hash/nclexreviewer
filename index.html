@@ -11,7 +11,6 @@
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -19,18 +18,18 @@
     <style>
         :root {
             /* COLOR PALETTE */
-            --bg-body: #0f172a;       
-            --bg-card: #1e293b;       
+            --bg-body: #0f172a;        
+            --bg-card: #1e293b;        
             --bg-input: #334155;
             
             --primary: #22d3ee;      /* Cyan */
             --primary-dark: #0891b2;  
             --primary-glow: rgba(34, 211, 238, 0.4);
             
-            --accent: #818cf8;      
-            --success: #34d399;       
-            --warning: #fbbf24;       
-            --danger: #f87171;       
+            --accent: #818cf8;       
+            --success: #34d399;        
+            --warning: #fbbf24;        
+            --danger: #f87171;        
             
             --text-main: #f8fafc;     
             --text-muted: #94a3b8;     
@@ -145,24 +144,41 @@
             font-size: 0.7rem; padding: 4px 10px; font-weight: 800; border-bottom-left-radius: 10px;
         }
         .price-text { font-size: 1.5rem; font-weight: 800; color: white; }
-        .price-sub { font-size: 0.85rem; color: var(--text-muted); }
+        .price-sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px; }
+        
+        /* Slot Tracker Styles */
+        .slot-tracker {
+            background: rgba(15, 23, 42, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .slot-info {
+            display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 6px; font-weight: 600;
+        }
+        .slot-bar-bg {
+            height: 6px; width: 100%; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;
+        }
+        .slot-bar-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
 
         /* --- APP DASHBOARD & LAYOUT --- */
         .app-layout { display: flex; width: 100%; max-width: 1400px; height: 100vh; position: relative; }
         
         .sidebar { 
-            width: 260px; 
-            background: rgba(15, 23, 42, 0.95); 
+            width: 270px; 
+            background: rgba(15, 23, 42, 0.8); 
+            backdrop-filter: blur(20px);
             border-right: 1px solid rgba(255,255,255,0.05); 
             padding: 30px 20px; 
-            display: flex; flex-direction: column; gap: 10px; 
+            display: flex; flex-direction: column; gap: 8px; 
             z-index: 10;
         }
         
         .main-content { 
             flex: 1; 
             overflow-y: auto; 
-            padding: 30px; 
+            padding: 40px; 
             display: flex; 
             flex-direction: column; 
             position: relative;
@@ -174,29 +190,38 @@
             background-attachment: fixed;
         }
         
-        .nav-item { padding: 14px 20px; border-radius: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 12px; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        .nav-item:hover { color: var(--text-main); background: rgba(255,255,255,0.03); }
-        .nav-item.active { background: rgba(34, 211, 238, 0.1); color: var(--primary); border: 1px solid rgba(34, 211, 238, 0.2); }
+        .nav-item { 
+            padding: 14px 20px; border-radius: 12px; color: var(--text-muted); 
+            display: flex; align-items: center; gap: 14px; font-weight: 600; cursor: pointer; transition: 0.3s; 
+            font-size: 0.95rem;
+        }
+        .nav-item i { font-size: 1.2rem; }
+        .nav-item:hover { color: var(--text-main); background: rgba(255,255,255,0.05); transform: translateX(5px); }
+        .nav-item.active { 
+            background: linear-gradient(90deg, rgba(34, 211, 238, 0.15), transparent); 
+            color: var(--primary); 
+            border-left: 3px solid var(--primary);
+            border-radius: 4px 12px 12px 4px;
+        }
         
         /* --- DASHBOARD WIDGETS --- */
-        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(10px); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
-        .stat-title { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; }
-        .stat-value { font-size: 1.8rem; font-weight: 800; color: white; }
+        .dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; }
+        .date-badge { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* --- CATEGORY FILTER CHIPS --- */
-        .category-scroller {
-            display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 20px; -webkit-overflow-scrolling: touch;
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; margin-bottom: 35px; }
+        
+        .stat-card { 
+            background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(15px); padding: 25px; 
+            border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); transition: 0.3s;
+            position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; height: 160px;
         }
-        .cat-chip {
-            flex: 0 0 auto; padding: 10px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: 700;
-            cursor: pointer; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); transition: 0.3s;
-        }
-        .cat-chip:hover { background: rgba(255,255,255,0.1); color: white; }
-        .cat-chip.active { background: var(--primary); color: #0f172a; box-shadow: 0 0 15px var(--primary-glow); border-color: var(--primary); }
-        .category-scroller::-webkit-scrollbar { display: none; }
+        .stat-card:hover { transform: translateY(-5px); border-color: var(--primary-dark); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
+        
+        .stat-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 15px; color: #fff; }
+        .stat-content h4 { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; margin-bottom: 5px; }
+        .stat-content .value { font-size: 2rem; font-weight: 800; color: white; letter-spacing: -1px; }
 
-        /* --- QUESTION CARD --- */
+        /* --- QUESTION CARD (Shared by Simulator & Exam) --- */
         .question-card {
             background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 30px; margin-bottom: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
@@ -219,166 +244,70 @@
 
         /* Rationale Styles */
         #rationale-box {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid var(--success);
-            border-left: 5px solid var(--success);
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
-            display: none; /* Hidden by default */
+            background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); border-left: 5px solid var(--success);
+            padding: 20px; border-radius: 12px; margin-top: 20px; display: none;
         }
         #rationale-box h4 { color: var(--success); margin-top: 0; margin-bottom: 10px; font-size: 1rem; }
         #rationale-text { color: var(--text-main); font-size: 0.95rem; line-height: 1.5; }
+
+        /* --- CATEGORY CHIPS --- */
+        .category-scroller {
+            display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 20px; -webkit-overflow-scrolling: touch;
+        }
+        .cat-chip {
+            flex: 0 0 auto; padding: 10px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: 700;
+            cursor: pointer; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); transition: 0.3s;
+        }
+        .cat-chip:hover { background: rgba(255,255,255,0.1); color: white; }
+        .cat-chip.active { background: var(--primary); color: #0f172a; box-shadow: 0 0 15px var(--primary-glow); border-color: var(--primary); }
+        .category-scroller::-webkit-scrollbar { display: none; }
         
-        /* --- NEW CLIENT NEEDS STYLES --- */
-        .client-mastery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
+        /* --- EXAM MODE STYLES --- */
+        .exam-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .exam-progress { flex: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 0 20px; overflow: hidden; }
+        .exam-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+        
+        /* Exam Result Screen */
+        .result-container { text-align: center; padding: 40px; animation: fadeIn 0.5s; }
+        .result-circle {
+            width: 150px; height: 150px; border-radius: 50%; border: 8px solid; 
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;
+            font-size: 3rem; font-weight: 800; background: rgba(0,0,0,0.2);
         }
-        .mastery-card {
-            background: var(--bg-card);
-            border: 1px solid rgba(255,255,255,0.08);
-            padding: 20px;
-            border-radius: 16px;
-            transition: 0.3s;
+        .status-pass { border-color: var(--success); color: var(--success); box-shadow: 0 0 30px rgba(52, 211, 153, 0.3); }
+        .status-fail { border-color: var(--danger); color: var(--danger); box-shadow: 0 0 30px rgba(248, 113, 113, 0.3); }
+        
+        .result-message { font-size: 2rem; font-weight: 800; margin-bottom: 10px; }
+        .result-sub { color: var(--text-muted); max-width: 400px; margin: 0 auto 30px; }
+        
+        .score-badge { display: inline-block; padding: 10px 20px; border-radius: 50px; font-weight: 700; margin-top: 10px; }
+        .badge-pass { background: rgba(52, 211, 153, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .badge-fail { background: rgba(248, 113, 113, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        
+        /* Analytics Chart Styles (Reused from previous) */
+        .analytics-chart-container {
+            position: relative; height: 300px; background: rgba(30, 41, 59, 0.5); border-radius: 16px;
+            padding: 20px 20px 0 60px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
         }
-        .mastery-card:hover {
-            box-shadow: 0 0 15px rgba(34, 211, 238, 0.2);
-            transform: translateY(-2px);
-        }
-        .mastery-title {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--text-main);
-            margin-bottom: 10px;
-        }
-        .mastery-progress-bar {
-            background: var(--bg-input);
-            border-radius: 50px;
-            height: 10px;
-            overflow: hidden;
-            margin-bottom: 8px;
-        }
-        .mastery-fill {
-            height: 100%;
-            transition: width 0.5s ease;
-        }
-        .mastery-score {
-            font-size: 1.5rem;
-            font-weight: 800;
-        }
+        .chart-y-axis { position: absolute; left: 0; top: 0; bottom: 0; width: 60px; padding: 20px 5px 20px 0; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; font-size: 10px; color: var(--text-muted); }
+        .chart-bars { width: 100%; height: 90%; display: flex; align-items: flex-end; gap: 15px; padding-bottom: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .chart-bar-wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+        .chart-bar { width: 100%; max-width: 40px; background: var(--primary); border-radius: 4px 4px 0 0; transition: height 0.8s ease-out; position: relative; box-shadow: 0 0 10px rgba(34, 211, 238, 0.3); }
+        .bar-value { position: absolute; top: -18px; font-size: 10px; font-weight: 700; color: var(--text-main); }
+        .chart-labels { width: 100%; height: 20px; display: flex; gap: 15px; padding: 5px 0 0; position: absolute; bottom: 0; left: 60px; right: 0; }
+        .chart-label-item { flex: 1; text-align: center; font-size: 11px; color: var(--text-muted); }
+        
+        /* Client Needs Grid */
+        .client-mastery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .mastery-card { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; transition: 0.3s; }
+        .mastery-card:hover { box-shadow: 0 0 15px rgba(34, 211, 238, 0.2); transform: translateY(-2px); }
+        .mastery-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 10px; }
+        .mastery-progress-bar { background: var(--bg-input); border-radius: 50px; height: 10px; overflow: hidden; margin-bottom: 8px; }
+        .mastery-fill { height: 100%; transition: width 0.5s ease; }
+        .mastery-score { font-size: 1.5rem; font-weight: 800; }
         .mastery-score.high { color: var(--success); }
         .mastery-score.medium { color: var(--warning); }
         .mastery-score.low { color: var(--danger); }
-        
-        /* --- NEW ANALYTICS CHART STYLES --- */
-        .analytics-chart-container {
-            position: relative;
-            height: 300px;
-            background: rgba(30, 41, 59, 0.5);
-            border-radius: 16px;
-            padding: 20px 20px 0 60px; /* Space for Y-axis */
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: flex-start;
-        }
-
-        .chart-y-axis {
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 60px;
-            padding: 20px 5px 20px 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: flex-end;
-            font-size: 10px;
-            color: var(--text-muted);
-        }
-
-        .chart-bars {
-            width: 100%;
-            height: 90%; /* Leaves space for X labels */
-            display: flex;
-            align-items: flex-end;
-            gap: 15px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .chart-bar-wrapper {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-end;
-            height: 100%;
-        }
-
-        .chart-bar {
-            width: 100%;
-            max-width: 40px;
-            background: var(--primary);
-            border-radius: 4px 4px 0 0;
-            transition: height 0.8s ease-out;
-            position: relative;
-            box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
-        }
-
-        .bar-value {
-            position: absolute;
-            top: -18px;
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        .chart-labels {
-            width: 100%;
-            height: 20px;
-            display: flex;
-            gap: 15px;
-            padding: 5px 0 0;
-            position: absolute;
-            bottom: 0;
-            left: 60px; /* Align with bars */
-            right: 0;
-        }
-
-        .chart-label-item {
-            flex: 1;
-            text-align: center;
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        /* Summary Grid */
-        .analytics-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 20px;
-            margin-top: 25px;
-        }
-        .summary-card {
-            background: var(--bg-card);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .summary-title {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 5px;
-        }
-        .summary-value {
-            font-size: 1.4rem;
-            font-weight: 800;
-        }
-
 
         /* --- RESPONSIVE --- */
         @media (max-width: 900px) {
@@ -431,9 +360,27 @@
                 <button onclick="backToLogin()" style="background:none; color: var(--text-muted); margin-bottom: 20px;"><i class='bx bx-arrow-back'></i> Back</button>
                 <h2>Select Plan</h2>
                 <div class="pricing-grid">
-                    <div class="plan-card" onclick="selectPlan(this, '499')"><div class="price-text">₱499</div><div class="price-sub">3 Months Access</div></div>
-                    <div class="plan-card" onclick="selectPlan(this, '999')"><div class="price-text">₱999</div><div class="price-sub">6 Months Access</div></div>
-                    <div class="plan-card" onclick="selectPlan(this, '1799')"><div class="plan-badge">BEST VALUE</div><div class="price-text">₱1,799</div><div class="price-sub">1 Year Access</div></div>
+                    <div class="plan-card" onclick="selectPlan(this, '499')">
+                        <div class="price-text">₱499</div><div class="price-sub">3 Months Access</div>
+                        <div class="slot-tracker">
+                            <div class="slot-info"><span style="color: var(--text-muted);">Avail: 45 / 50</span><span style="color: var(--danger);">5 Remaining</span></div>
+                            <div class="slot-bar-bg"><div class="slot-bar-fill" style="width: 90%; background: var(--danger);"></div></div>
+                        </div>
+                    </div>
+                    <div class="plan-card" onclick="selectPlan(this, '999')">
+                        <div class="price-text">₱999</div><div class="price-sub">6 Months Access</div>
+                        <div class="slot-tracker">
+                            <div class="slot-info"><span style="color: var(--text-muted);">Avail: 18 / 30</span><span style="color: var(--warning);">12 Remaining</span></div>
+                            <div class="slot-bar-bg"><div class="slot-bar-fill" style="width: 60%; background: var(--warning);"></div></div>
+                        </div>
+                    </div>
+                    <div class="plan-card" onclick="selectPlan(this, '1799')">
+                        <div class="plan-badge">BEST VALUE</div><div class="price-text">₱1,799</div><div class="price-sub">1 Year Access</div>
+                        <div class="slot-tracker">
+                            <div class="slot-info"><span style="color: var(--text-muted);">Avail: 8 / 10</span><span style="color: var(--success);">2 Remaining</span></div>
+                            <div class="slot-bar-bg"><div class="slot-bar-fill" style="width: 80%; background: var(--success);"></div></div>
+                        </div>
+                    </div>
                 </div>
                 <input type="hidden" id="selected-price">
                 <button id="btn-next-pay" onclick="showPaymentForm()" class="btn-full btn-primary" disabled style="opacity: 0.5;">Next Step <i class='bx bx-right-arrow-alt'></i></button>
@@ -460,8 +407,8 @@
 
     <div id="view-app" class="app-layout hidden">
         <aside class="sidebar">
-            <div style="font-size: 1.4rem; font-weight: 800; color: white; margin-bottom: 30px; display: flex; align-items: center; gap: 10px;">
-                <div style="width: 30px; height: 30px; background: var(--primary); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:#000;">
+            <div style="font-size: 1.4rem; font-weight: 800; color: white; margin-bottom: 40px; display: flex; align-items: center; gap: 12px; padding: 0 10px;">
+                <div style="width: 36px; height: 36px; background: var(--primary); border-radius: 10px; display:flex; align-items:center; justify-content:center; color:#000; box-shadow: 0 0 15px var(--primary-glow);">
                     <i class='bx bxs-capsule'></i>
                 </div>
                 NURSIFY
@@ -470,61 +417,64 @@
             <div class="nav-item active" onclick="switchTab(this, 'dashboard')"><i class='bx bxs-dashboard'></i> Dashboard</div>
             <div class="nav-item" onclick="switchTab(this, 'client')"><i class='bx bxs-layer'></i> Client Needs</div>
             <div class="nav-item" onclick="switchTab(this, 'simulator')"><i class='bx bx-laptop'></i> CAT Simulator</div>
+            
+            <div class="nav-item" onclick="switchTab(this, 'exam')"><i class='bx bx-timer'></i> Test Yourself</div>
+            
             <div class="nav-item" onclick="switchTab(this, 'analytics')"><i class='bx bxs-bar-chart-alt-2'></i> Analytics</div>
             
             <div style="flex:1"></div>
             
-            <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05);">
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 5px;">ACCOUNT STATUS</div>
-                <div id="sub-status" style="font-weight: 700; color: var(--success); font-size: 0.95rem;">Premium Active</div>
-                <div id="sub-days" style="font-size: 0.8rem; margin-top: 2px; color: var(--text-muted);">90 Days Remaining</div>
+            <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; margin-top: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                    <div style="width: 35px; height: 35px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                        <i class='bx bxs-user'></i>
+                    </div>
+                    <div>
+                        <div id="user-role" style="font-size: 0.85rem; font-weight: 700; color: white;">Student Nurse</div>
+                        <div id="sub-status" style="font-size: 0.7rem; color: var(--success);">Premium Active</div>
+                        <div id="sub-days-sidebar" style="font-size: 0.7rem; color: var(--text-muted);">Checking...</div>
+                    </div>
+                </div>
+                <div class="nav-item" onclick="logout()" style="color: var(--danger); justify-content: flex-start; padding: 10px;"><i class='bx bx-log-out'></i> Logout</div>
             </div>
-            <div class="nav-item" onclick="logout()" style="color: var(--danger);"><i class='bx bx-log-out'></i> Logout</div>
         </aside>
 
         <main class="main-content">
             
             <div id="tab-dashboard" class="tab-content fade-in">
-                <h2 style="margin-bottom: 20px;">Welcome Back, Nurse!</h2>
-                <div class="stat-grid">
-                    <div class="stat-card">
-                        <div class="stat-title">Probability of Passing</div>
-                        <div class="stat-value" style="color: var(--success);">72%</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Based on recent tests</div>
+                <div class="dashboard-header">
+                    <div>
+                        <div class="date-badge" id="current-date">Today</div>
+                        <h2 style="font-size: 2rem;">Welcome Back, Nurse!</h2>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-title">Questions Taken</div>
-                        <div class="stat-value" style="color: var(--primary);">148</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Out of 2,500 Bank</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-title">Daily Streak</div>
-                        <div class="stat-value" style="color: var(--warning);">3 Days</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Keep it up!</div>
+                    <div id="sub-days" style="padding: 6px 15px; background: rgba(255,255,255,0.05); border-radius: 30px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.1);">
+                        ...
                     </div>
                 </div>
-                
-                <div style="background: rgba(30, 41, 59, 0.6); padding: 30px; border-radius: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
-                    <h3>Ready to study?</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 20px;">Continue where you left off in Physiological Integrity.</p>
-                    <button class="btn-full btn-primary" onclick="switchTab(document.querySelectorAll('.nav-item')[2], 'simulator')" style="width: auto; display: inline-flex; padding: 12px 40px;">
-                        Go to CAT Simulator <i class='bx bx-right-arrow-alt'></i>
-                    </button>
+
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(34, 211, 238, 0.2); color: var(--primary);"><i class='bx bx-target-lock'></i></div>
+                        <div class="stat-content"><h4>Passing Probability</h4><div class="value">72%</div></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(129, 140, 248, 0.2); color: var(--accent);"><i class='bx bx-brain'></i></div>
+                        <div class="stat-content"><h4>Questions Answered</h4><div class="value">148</div></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(251, 191, 36, 0.2); color: var(--warning);"><i class='bx bx-calendar-star'></i></div>
+                        <div class="stat-content"><h4>Daily Streak</h4><div class="value">3 Days</div></div>
+                    </div>
                 </div>
             </div>
 
             <div id="tab-client" class="tab-content hidden fade-in">
-                <h2>🎯 Client Needs Areas Mastery</h2>
+                <h2 style="font-size: 1.8rem; margin-bottom: 10px;">🎯 Client Needs Mastery</h2>
                 <p style="color: var(--text-muted); margin-bottom: 30px;">Your personalized performance breakdown based on all questions answered in the CAT Simulator.</p>
-
-                <div id="mastery-grid" class="client-mastery-grid">
-                    </div>
-                
+                <div id="mastery-grid" class="client-mastery-grid"></div>
                 <div style="margin-top: 30px;">
                     <h3 style="color: var(--primary); margin-bottom: 10px; font-size: 1.2rem;">Weakest Area Focus:</h3>
-                    <div id="weakest-area" style="background: rgba(248, 113, 113, 0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-weight: 600;">
-                        Calculating...
-                    </div>
+                    <div id="weakest-area" style="background: rgba(248, 113, 113, 0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-weight: 600;">Calculating...</div>
                 </div>
             </div>
 
@@ -532,11 +482,10 @@
                 <div class="question-header" style="margin-bottom: 10px;">
                     <div>
                         <h2 style="font-size: 1.5rem; color: white;">NCLEX Simulator</h2>
-                        <p style="color: var(--text-muted); font-size: 0.9rem;">Select a category to filter questions.</p>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">Practice mode with rationale.</p>
                     </div>
-                    <div class="q-badge" id="q-counter">Q: 0 / 0</div>
+                    <div class="q-badge" id="q-counter" style="float: right; font-weight: 700;">Q: 0 / 0</div>
                 </div>
-                
                 <div class="category-scroller fade-in">
                     <button class="cat-chip active" onclick="setCategory('All')">All Topics</button>
                     <button class="cat-chip" onclick="setCategory('Safe Care')">Safe & Effective Care</button>
@@ -545,48 +494,85 @@
                     <button class="cat-chip" onclick="setCategory('Physiological')">Physiological</button>
                     <button class="cat-chip" onclick="setCategory('Pharm')">Pharmacology</button>
                 </div>
-                
                 <div class="question-card fade-in">
-                    <div class="question-text" id="display-question">
-                        Click 'All Topics' above to load questions from the database.
-                    </div>
+                    <div class="question-text" id="display-question">Click 'All Topics' above to load questions.</div>
                     <div class="options-list" id="display-options">
                         <div class="option-item"><div class="option-circle">A</div><div>Waiting for questions...</div></div>
                     </div>
-
-                    <div id="rationale-box">
-                        <h4>Rationale</h4>
-                        <div id="rationale-text"></div>
-                    </div>
+                    <div id="rationale-box"><h4>Rationale</h4><div id="rationale-text"></div></div>
                 </div>
-                
                 <div class="action-bar fade-in">
                     <button class="btn-full btn-outline" style="width: auto; padding: 12px 25px;">Skip</button>
                     <button class="btn-full btn-primary" onclick="submitAnswer()" style="width: auto; padding: 12px 35px;" id="submit-btn">Submit Answer</button>
                 </div>
             </div>
 
-            <div id="tab-analytics" class="tab-content hidden fade-in">
-                <h2>📈 Performance Analytics</h2>
-                <p style="color: var(--text-muted); margin-bottom: 30px;">Track your scores and consistency across recent mock exams and practice sessions.</p>
-
-                <h3 style="color: var(--primary); font-size: 1.2rem; margin-bottom: 15px;">Last 5 Quizzes Score</h3>
+            <div id="tab-exam" class="tab-content hidden fade-in">
                 
-                <div class="analytics-chart-container">
-                    <div id="analytics-chart-labels" class="chart-labels">
+                <div id="exam-intro" style="text-align: center; margin-top: 50px;">
+                    <i class='bx bx-timer' style="font-size: 4rem; color: var(--primary); margin-bottom: 20px;"></i>
+                    <h2 style="font-size: 2.5rem; margin-bottom: 10px;">Test Yourself Mode</h2>
+                    <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 30px; line-height: 1.6;">
+                        Simulate the actual board exam environment. No rationales will be shown until you finish.
+                        You need <b>75% or higher</b> to pass.
+                    </p>
+                    <div style="background: rgba(30, 41, 59, 0.5); display: inline-block; padding: 20px; border-radius: 16px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="font-weight: 700; color: white;">10 Questions</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Randomized Topics</div>
+                    </div>
+                    <br>
+                    <button onclick="startExam()" class="btn-full btn-primary" style="width: auto; display: inline-flex; padding: 15px 50px; font-size: 1.1rem;">
+                        Start Exam <i class='bx bx-play'></i>
+                    </button>
+                </div>
+
+                <div id="exam-active" class="hidden">
+                    <div class="exam-header">
+                        <div style="font-weight: 700; font-size: 1.1rem;">Question <span id="exam-q-num">1</span></div>
+                        <div class="exam-progress">
+                            <div id="exam-bar-fill" class="exam-bar"></div>
                         </div>
-                    <div id="analytics-chart" class="chart-bars">
-                        </div>
-                    <div class="chart-y-axis">
-                        <span>100%</span>
-                        <span>80%</span>
-                        <span>60%</span>
-                        <span>40%</span>
-                        <span>20%</span>
-                        <span>0%</span>
+                        <div style="color: var(--text-muted); font-size: 0.9rem;">Remaining: <span id="exam-rem">9</span></div>
+                    </div>
+
+                    <div class="question-card fade-in">
+                        <div class="question-text" id="exam-question-text">Loading...</div>
+                        <div class="options-list" id="exam-options-list"></div>
+                    </div>
+
+                    <div class="action-bar fade-in">
+                        <button class="btn-full btn-primary" onclick="nextExamQuestion()" id="exam-next-btn" style="width: 100%; max-width: 200px;">
+                            Next Question <i class='bx bx-right-arrow-alt'></i>
+                        </button>
                     </div>
                 </div>
-                
+
+                <div id="exam-result" class="result-container hidden">
+                    <div id="result-circle-ui" class="result-circle">
+                        0%
+                    </div>
+                    <h2 id="result-title" class="result-message">Result</h2>
+                    <p id="result-desc" class="result-sub">Breakdown of your performance</p>
+                    
+                    <div id="result-badge-container"></div>
+
+                    <div style="display: flex; gap: 20px; justify-content: center; margin-top: 40px;">
+                        <button onclick="startExam()" class="btn-full btn-primary" style="width: auto; padding: 12px 30px;">Retake Exam</button>
+                        <button onclick="switchTab(null, 'analytics')" class="btn-full btn-outline" style="width: auto; padding: 12px 30px;">View Analytics</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="tab-analytics" class="tab-content hidden fade-in">
+                <h2>📈 Performance Analytics</h2>
+                <div class="analytics-chart-container">
+                    <div id="analytics-chart-labels" class="chart-labels"></div>
+                    <div id="analytics-chart" class="chart-bars"></div>
+                    <div class="chart-y-axis">
+                        <span>100%</span><span>80%</span><span>60%</span><span>40%</span><span>20%</span><span>0%</span>
+                    </div>
+                </div>
                 <div class="analytics-summary-grid">
                     <div class="summary-card">
                         <div class="summary-title">Average Score</div>
@@ -617,30 +603,24 @@
 
     <script>
         // --- FIREBASE INIT ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyBnNERL2mKSmPPePf1CHe6aIx7KwhQ-cEc",
-            authDomain: "nlcexreviewer.firebaseapp.com",
-            projectId: "nlcexreviewer",
-            storageBucket: "nlcexreviewer.firebasestorage.app",
-            messagingSenderId: "707153074336",
-            appId: "1:707153074336:web:1cfc48a8cc4ec6679cd1c5",
-            measurementId: "G-ECZ2MQ0Z1G"
-        };
-        try {
-            firebase.initializeApp(firebaseConfig);
-            auth = firebase.auth();
-            db = firebase.firestore();
-        } catch (e) { console.error(e); }
+        const firebaseConfig = { apiKey: "AIzaSyBnNERL2mKSmPPePf1CHe6aIx7KwhQ-cEc", authDomain: "nlcexreviewer.firebaseapp.com", projectId: "nlcexreviewer", storageBucket: "nlcexreviewer.firebasestorage.app", messagingSenderId: "707153074336", appId: "1:707153074336:web:1cfc48a8cc4ec6679cd1c5", measurementId: "G-ECZ2MQ0Z1G" };
+        try { firebase.initializeApp(firebaseConfig); auth = firebase.auth(); db = firebase.firestore(); } catch (e) { console.error(e); }
 
-        // --- GLOBAL STATE & LOGIC ---
+        // --- GLOBAL STATE ---
         const DEMO_LIMIT_MS = 60 * 1000;
         let demoInterval;
-        
         let currentQuestions = [];
         let currentQIndex = 0;
         let currentQuestionData = null; 
         
-        // Data for Client Needs Mastery (Simulation)
+        // --- EXAM STATE ---
+        let examQuestions = [];
+        let examIndex = 0;
+        let examScore = 0;
+        const EXAM_LENGTH = 10;
+        const PASS_THRESHOLD = 75;
+
+        // --- MASTERY DATA ---
         const MASTERY_CATEGORIES = [
             { name: "Safe & Effective Care", key: "Safe Care", color: '#22d3ee' },
             { name: "Health Promotion", key: "Health Promo", color: '#34d399' },
@@ -649,9 +629,10 @@
             { name: "Pharmacology", key: "Pharm", color: '#fbbf24' }
         ];
 
+        // Init Date
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-        // --- UI NAVIGATION ---
-
+        // --- NAVIGATION ---
         function switchTab(el, tabId) {
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             if(el) el.classList.add('active');
@@ -660,30 +641,25 @@
             const targetTab = document.getElementById('tab-' + tabId);
             if(targetTab) targetTab.classList.remove('hidden');
 
-            if (tabId === 'simulator' && currentQuestions.length === 0) {
-                 setCategory('All'); 
-            }
+            if (tabId === 'simulator' && currentQuestions.length === 0) setCategory('All');
+            if (tabId === 'client') loadClientNeeds();
+            if (tabId === 'analytics') loadAnalytics();
             
-            if (tabId === 'client') {
-                loadClientNeeds(); 
-            }
-
-            if (tabId === 'analytics') {
-                loadAnalytics(); 
+            // Reset Exam View if leaving tab
+            if (tabId !== 'exam') {
+                document.getElementById('exam-intro').classList.remove('hidden');
+                document.getElementById('exam-active').classList.add('hidden');
+                document.getElementById('exam-result').classList.add('hidden');
             }
         }
 
-        // --- CORE: FETCHING QUESTIONS FROM DATABASE ---
+        // --- SIMULATOR LOGIC (Fetch & Render) ---
         function setCategory(cat) {
-            // 1. UI Updates (Active Chips)
             document.querySelectorAll('.cat-chip').forEach(btn => {
                 btn.classList.remove('active');
-                if(btn.innerText.includes(cat) || (cat === 'All' && btn.innerText === 'All Topics')) {
-                    btn.classList.add('active');
-                }
+                if(btn.innerText.includes(cat) || (cat === 'All' && btn.innerText === 'All Topics')) btn.classList.add('active');
             });
 
-            // 2. Show Loading State
             const qText = document.getElementById('display-question');
             const qOpts = document.getElementById('display-options');
             const qCounter = document.getElementById('q-counter');
@@ -691,111 +667,61 @@
             qText.innerHTML = "<i><i class='bx bx-loader-alt bx-spin'></i> Fetching questions...</i>";
             qOpts.innerHTML = "";
             qCounter.innerText = "Q: 0 / 0";
-            
             document.getElementById('rationale-box').style.display = 'none';
 
-            // 3. Build Query (Collection used by Admin Uploader: nclex_questions)
             let query = db.collection("nclex_questions");
-            
-            if(cat !== 'All') {
-                query = query.where("category", "==", cat);
-            }
+            if(cat !== 'All') query = query.where("category", "==", cat);
 
-            // 4. Fetch Data
-            query.limit(100).get().then((snap) => {
-                currentQuestions = []; 
-                
-                if(snap.empty) {
-                    qText.innerText = `No questions available for ${cat} yet.`;
-                    return;
-                }
-
-                snap.forEach(doc => {
-                    let data = doc.data();
-                    data.id = doc.id;
-                    currentQuestions.push(data);
-                });
-
-                // Randomize and start
+            query.limit(50).get().then((snap) => {
+                currentQuestions = [];
+                if(snap.empty) { qText.innerText = `No questions available for ${cat} yet.`; return; }
+                snap.forEach(doc => { let data = doc.data(); data.id = doc.id; currentQuestions.push(data); });
                 currentQuestions.sort(() => Math.random() - 0.5);
                 currentQIndex = 0;
                 renderQuestion();
-            }).catch(e => {
-                console.error("Firebase Fetch Error:", e);
-                qText.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`;
-            });
+            }).catch(e => { console.error(e); qText.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`; });
         }
 
-        // --- CORE: RENDERING QUESTION ---
         function renderQuestion() {
             if(currentQuestions.length === 0 || currentQIndex >= currentQuestions.length) {
-                document.getElementById('display-question').innerText = "Test Complete! No more questions in this category.";
+                document.getElementById('display-question').innerText = "Test Complete! No more questions.";
                 document.getElementById('display-options').innerHTML = "";
-                document.getElementById('q-counter').innerText = `Q: ${currentQuestions.length} / ${currentQuestions.length}`;
-                document.getElementById('rationale-box').style.display = 'none';
                 document.getElementById('submit-btn').disabled = true;
                 return;
             }
-            
             currentQuestionData = currentQuestions[currentQIndex];
             const data = currentQuestionData;
-
-            const qText = document.getElementById('display-question');
-            const qOpts = document.getElementById('display-options');
-            const counter = document.getElementById('q-counter');
-            const submitBtn = document.getElementById('submit-btn');
-
-            // Reset UI for new question
-            submitBtn.disabled = false;
-            document.getElementById('rationale-box').style.display = 'none';
-            document.querySelector('.action-bar .btn-outline').disabled = false;
-
-
-            // Update Counter and Text
-            qText.innerText = data.question;
-            counter.innerText = `Q: ${currentQIndex + 1} / ${currentQuestions.length}`;
-
-            // Update Options
+            document.getElementById('display-question').innerText = data.question;
+            document.getElementById('q-counter').innerText = `Q: ${currentQIndex + 1} / ${currentQuestions.length}`;
+            
             let optsHtml = "";
             const letters = ["A", "B", "C", "D"];
-            
             data.options.forEach((opt, index) => {
-                if(opt && opt.trim() !== '') {
-                    optsHtml += `
-                        <div class="option-item" data-index="${index}" onclick="selectOption(this)">
-                            <div class="option-circle">${letters[index]}</div>
-                            <div>${opt}</div>
-                        </div>
-                    `;
-                }
+                if(opt) optsHtml += `<div class="option-item" data-index="${index}" onclick="selectOption(this)"><div class="option-circle">${letters[index]}</div><div>${opt}</div></div>`;
             });
-            
-            qOpts.innerHTML = optsHtml;
+            document.getElementById('display-options').innerHTML = optsHtml;
+            document.getElementById('rationale-box').style.display = 'none';
+            document.getElementById('submit-btn').disabled = false;
         }
 
-        // --- CORE: ANSWER SELECTION & SUBMISSION ---
         function selectOption(el) {
-            document.querySelectorAll('.option-item').forEach(i => i.classList.remove('selected'));
+            const parent = el.parentElement;
+            parent.querySelectorAll('.option-item').forEach(i => i.classList.remove('selected'));
             el.classList.add('selected');
         }
         
         function submitAnswer() {
-            const selected = document.querySelector('.option-item.selected');
+            const selected = document.querySelector('#display-options .option-item.selected');
             if(!selected) return alert("Select an answer first!");
             
             const selectedIndex = parseInt(selected.getAttribute('data-index'));
             const correctIndex = currentQuestionData.correctIndex;
             const submitBtn = document.getElementById('submit-btn');
-
-            // Disable interaction
             submitBtn.disabled = true;
-            document.querySelector('.action-bar .btn-outline').disabled = true;
 
-            // Highlight answers
-            document.querySelectorAll('.option-item').forEach(item => {
+            document.querySelectorAll('#display-options .option-item').forEach(item => {
                 item.onclick = null; 
                 const itemIndex = parseInt(item.getAttribute('data-index'));
-                
                 if (itemIndex === correctIndex) {
                     item.style.backgroundColor = 'rgba(52, 211, 153, 0.1)';
                     item.style.borderColor = 'var(--success)';
@@ -806,25 +732,13 @@
                     item.style.borderColor = 'var(--danger)';
                     item.querySelector('.option-circle').style.backgroundColor = 'var(--danger)';
                     item.querySelector('.option-circle').innerHTML = '<i class="bx bx-x"></i>';
-                } else {
-                     item.style.backgroundColor = 'rgba(51, 65, 85, 0.6)'; 
-                     item.style.borderColor = 'rgba(255,255,255,0.05)';
                 }
             });
 
-            // Display Rationale
-            const rationaleBox = document.getElementById('rationale-box');
-            const rationaleText = document.getElementById('rationale-text');
-            
-            rationaleText.innerHTML = currentQuestionData.rationale || "No detailed rationale provided for this question.";
-            rationaleBox.style.display = 'block';
+            document.getElementById('rationale-text').innerHTML = currentQuestionData.rationale || "No detailed rationale provided.";
+            document.getElementById('rationale-box').style.display = 'block';
+            if (selectedIndex === correctIndex) confetti({particleCount:100, origin:{y:0.6}});
 
-            // Feedback
-            if (selectedIndex === correctIndex) {
-                confetti({particleCount:100, origin:{y:0.6}});
-            }
-
-            // Move to next question after a delay
             setTimeout(() => {
                 currentQIndex++;
                 renderQuestion();
@@ -832,146 +746,198 @@
             }, 8000); 
         }
 
-        // --- CLIENT NEEDS DATA & RENDERING (SIMULATED) ---
-        function loadClientNeeds() {
-            const grid = document.getElementById('mastery-grid');
-            grid.innerHTML = "<div style='text-align:center; color:var(--text-muted);'>Calculating mastery scores...</div>";
+        // --- EXAM MODE LOGIC (Test Yourself) ---
+        function startExam() {
+            document.getElementById('exam-intro').classList.add('hidden');
+            document.getElementById('exam-result').classList.add('hidden');
+            document.getElementById('exam-active').classList.remove('hidden');
             
-            // --- SIMULATION DATA ---
-            const simulatedScores = MASTERY_CATEGORIES.map(cat => {
-                const score = Math.floor(Math.random() * 35) + 60; 
-                return {
-                    ...cat,
-                    questionsAnswered: Math.floor(Math.random() * 50) + 10,
-                    correctPercentage: score
-                };
-            });
-            
-            let weakestScore = 100;
-            let weakestArea = "All areas look strong!";
+            document.getElementById('exam-question-text').innerText = "Preparing Exam...";
+            document.getElementById('exam-options-list').innerHTML = "";
 
-            grid.innerHTML = ""; 
-
-            simulatedScores.forEach(item => {
-                const score = item.correctPercentage;
-
-                if (score < weakestScore) {
-                    weakestScore = score;
-                    weakestArea = `${item.name} (${score}%)`;
+            // Fetch a fresh batch for the exam
+            db.collection("nclex_questions").limit(50).get().then((snap) => {
+                let pool = [];
+                if(!snap.empty) {
+                     snap.forEach(doc => { pool.push({ ...doc.data(), id: doc.id }); });
+                } else {
+                     // Fallback mock data if DB empty
+                     pool = [{question:"Sample Question?", options:["A","B","C","D"], correctIndex:0}];
                 }
                 
-                let scoreClass = 'high';
-                if (score < 75) scoreClass = 'medium';
-                if (score < 65) scoreClass = 'low';
-
-                const card = document.createElement('div');
-                card.className = 'mastery-card';
-                card.innerHTML = `
-                    <div class="mastery-title">${item.name}</div>
-                    <div class="mastery-score ${scoreClass}">${score}%</div>
-                    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom: 15px;">${item.questionsAnswered} Questions Reviewed</p>
-                    
-                    <div class="mastery-progress-bar">
-                        <div class="mastery-fill" style="width: ${score}%; background: ${item.color}; box-shadow: 0 0 10px ${item.color}80;"></div>
-                    </div>
-                `;
-                grid.appendChild(card);
+                pool.sort(() => Math.random() - 0.5);
+                examQuestions = pool.slice(0, EXAM_LENGTH);
+                examIndex = 0;
+                examScore = 0;
+                renderExamQuestion();
             });
-            
-            document.getElementById('weakest-area').innerText = weakestArea;
         }
 
-        // --- ANALYTICS CHART GENERATION (SIMULATED) ---
-        function loadAnalytics() {
-            // Simulated quiz data (scores from the last 5 quizzes)
-            const quizData = [
-                { name: "Quiz 1", score: 75, date: "12/01" },
-                { name: "Quiz 2", score: 82, date: "12/05" },
-                { name: "Quiz 3", score: 70, date: "12/08" },
-                { name: "Quiz 4", score: 88, date: "12/12" },
-                { name: "Quiz 5", score: 92, date: "12/15" }
-            ];
-
-            const chartContainer = document.getElementById('analytics-chart');
-            const labelContainer = document.getElementById('analytics-chart-labels');
-            chartContainer.innerHTML = '';
-            labelContainer.innerHTML = '';
-
-            let totalScore = 0;
-            let highestScore = 0;
+        function renderExamQuestion() {
+            if (examIndex >= examQuestions.length) {
+                finishExam();
+                return;
+            }
+            const data = examQuestions[examIndex];
             
-            // --- 1. RENDER BARS ---
-            quizData.forEach((quiz, index) => {
-                const score = quiz.score;
-                totalScore += score;
-                if (score > highestScore) highestScore = score;
-                
-                const barHeight = score * 0.9 + '%'; // Scale from 0 to 90%
-                
-                const barWrapper = document.createElement('div');
-                barWrapper.className = 'chart-bar-wrapper';
-                barWrapper.innerHTML = `
-                    <div class="chart-bar" style="height: ${barHeight}; background: ${score > 85 ? 'var(--success)' : 'var(--primary)'};">
-                        <span class="bar-value">${score}%</span>
-                    </div>
-                `;
-                chartContainer.appendChild(barWrapper);
+            document.getElementById('exam-q-num').innerText = examIndex + 1;
+            document.getElementById('exam-rem').innerText = examQuestions.length - (examIndex + 1);
+            const pct = ((examIndex) / examQuestions.length) * 100;
+            document.getElementById('exam-bar-fill').style.width = pct + "%";
 
-                const label = document.createElement('div');
-                label.className = 'chart-label-item';
-                label.innerText = `Q${index + 1}`; // Display Quiz 1, Quiz 2, etc.
-                labelContainer.appendChild(label);
+            document.getElementById('exam-question-text').innerText = data.question;
+            
+            let optsHtml = "";
+            const letters = ["A", "B", "C", "D"];
+            data.options.forEach((opt, index) => {
+                 if(opt) optsHtml += `<div class="option-item" data-index="${index}" onclick="selectOption(this)"><div class="option-circle">${letters[index]}</div><div>${opt}</div></div>`;
             });
+            document.getElementById('exam-options-list').innerHTML = optsHtml;
+        }
 
-            // --- 2. CALCULATE AND RENDER SUMMARY STATS ---
-            const avgScore = Math.round(totalScore / quizData.length);
-            document.getElementById('avg-score').innerText = `${avgScore}%`;
-            document.getElementById('high-score').innerText = `${highestScore}%`;
+        function nextExamQuestion() {
+            const selected = document.querySelector('#exam-options-list .option-item.selected');
+            if(!selected) return alert("Please select an answer to proceed.");
 
-            // Trend calculation: Compare last two scores
-            const lastScore = quizData[quizData.length - 1].score;
-            const secondLastScore = quizData[quizData.length - 2].score;
-            const trendEl = document.getElementById('trend-icon');
+            const selectedIndex = parseInt(selected.getAttribute('data-index'));
+            const correctIndex = examQuestions[examIndex].correctIndex;
 
-            if (lastScore > secondLastScore) {
-                trendEl.innerHTML = `<i class='bx bx-trending-up'></i> UP`;
-                trendEl.style.color = 'var(--success)';
-            } else if (lastScore < secondLastScore) {
-                trendEl.innerHTML = `<i class='bx bx-trending-down'></i> DOWN`;
-                trendEl.style.color = 'var(--danger)';
+            if (selectedIndex === correctIndex) examScore++;
+
+            examIndex++;
+            renderExamQuestion();
+        }
+
+        function finishExam() {
+            document.getElementById('exam-active').classList.add('hidden');
+            document.getElementById('exam-result').classList.remove('hidden');
+
+            const percentage = Math.round((examScore / EXAM_LENGTH) * 100);
+            const passed = percentage >= PASS_THRESHOLD;
+
+            const circle = document.getElementById('result-circle-ui');
+            circle.innerText = percentage + "%";
+            circle.className = "result-circle " + (passed ? "status-pass" : "status-fail");
+
+            const title = document.getElementById('result-title');
+            const desc = document.getElementById('result-desc');
+            const badgeCont = document.getElementById('result-badge-container');
+
+            if (passed) {
+                title.innerText = "Congratulations! 🎉";
+                title.style.color = "var(--success)";
+                desc.innerText = "You have passed the simulated exam. You are ready for the next level.";
+                badgeCont.innerHTML = `<div class="score-badge badge-pass">PASSED</div>`;
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
             } else {
-                trendEl.innerHTML = `<i class='bx bx-minus'></i> Stable`;
-                trendEl.style.color = 'var(--warning)';
+                title.innerText = "Study Harder 📚";
+                title.style.color = "var(--danger)";
+                desc.innerText = `You need ${PASS_THRESHOLD}% to pass. Keep reviewing your weak areas.`;
+                badgeCont.innerHTML = `<div class="score-badge badge-fail">FAILED</div>`;
             }
         }
 
+        // --- MOCK DATA RENDERERS ---
+        function loadClientNeeds() {
+            const grid = document.getElementById('mastery-grid');
+            grid.innerHTML = "";
+            let weakestScore = 100;
+            let weakestArea = "All strong";
 
-        // --- AUTH AND PAYMENT LOGIC (Original functions) ---
+            MASTERY_CATEGORIES.forEach(cat => {
+                const score = Math.floor(Math.random() * 35) + 60;
+                if(score < weakestScore) { weakestScore = score; weakestArea = `${cat.name} (${score}%)`; }
+                let scoreClass = score < 65 ? 'low' : score < 75 ? 'medium' : 'high';
+                
+                const card = document.createElement('div');
+                card.className = 'mastery-card';
+                card.innerHTML = `
+                    <div class="mastery-title">${cat.name}</div>
+                    <div class="mastery-score ${scoreClass}">${score}%</div>
+                    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom: 15px;">${Math.floor(Math.random()*50)+10} Questions Reviewed</p>
+                    <div class="mastery-progress-bar"><div class="mastery-fill" style="width: ${score}%; background: ${cat.color};"></div></div>
+                `;
+                grid.appendChild(card);
+            });
+            document.getElementById('weakest-area').innerText = weakestArea;
+        }
 
+        function loadAnalytics() {
+            const chartContainer = document.getElementById('analytics-chart');
+            const labelContainer = document.getElementById('analytics-chart-labels');
+            chartContainer.innerHTML = ''; labelContainer.innerHTML = '';
+            const scores = [75, 82, 70, 88, 92];
+            
+            scores.forEach((score, i) => {
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar-wrapper';
+                bar.innerHTML = `<div class="chart-bar" style="height: ${score*0.9}%; background: ${score>85?'var(--success)':'var(--primary)'};"><span class="bar-value">${score}%</span></div>`;
+                chartContainer.appendChild(bar);
+                
+                const label = document.createElement('div');
+                label.className = 'chart-label-item';
+                label.innerText = `Q${i+1}`;
+                labelContainer.appendChild(label);
+            });
+        }
+
+        // --- AUTH & PAYMENT LOGIC ---
         function handleLogin() {
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
             const msg = document.getElementById('login-msg');
 
-            if(user === 'admin' && pass === 'admin') { loginSuccess("Admin Mode", "Unlimited", false); return; }
+            if(user === 'admin' && pass === 'admin') { loginSuccess("Admin Mode", "Unlimited Access", false); return; }
 
             msg.innerText = "Checking...";
             db.collection("payments").where("email", "==", user).where("pass", "==", pass).where("status", "==", "active").get()
             .then((snap) => {
-                if (!snap.empty) loginSuccess("Premium Active", "Access Granted", false);
+                if (!snap.empty) {
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        const planPrice = data.planPrice;
+                        let durationDays = 0;
+                        
+                        // Plan Duration Logic
+                        if(planPrice == '499') durationDays = 90;
+                        else if(planPrice == '999') durationDays = 180;
+                        else if(planPrice == '1799') durationDays = 365;
+                        else durationDays = 30; // default backup
+
+                        // Date Calculation
+                        let startDate = data.timestamp ? data.timestamp.toDate() : new Date();
+                        let expiryDate = new Date(startDate);
+                        expiryDate.setDate(expiryDate.getDate() + durationDays);
+                        
+                        let now = new Date();
+                        let diffTime = expiryDate - now;
+                        let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                        if(diffDays <= 0) {
+                            msg.innerText = "Subscription Expired."; msg.style.color = "var(--danger)";
+                        } else {
+                            loginSuccess("Premium Active", diffDays + " Days Remaining", false);
+                        }
+                    });
+                }
                 else { msg.innerText = "Invalid or inactive."; msg.style.color = "var(--danger)"; }
             })
-            .catch(e => msg.innerText = "Error: " + e.message);
+            .catch(e => { console.error(e); msg.innerText = "Error: " + e.message; });
         }
 
-        function loginSuccess(status, days, isDemo) {
+        function loginSuccess(status, daysText, isDemo) {
             document.getElementById('view-landing').classList.add('hidden');
             document.getElementById('view-app').classList.remove('hidden');
+            
+            // Update Dashboard
+            document.getElementById('sub-days').innerText = daysText;
+            
+            // Update Sidebar
             document.getElementById('sub-status').innerText = status;
-            document.getElementById('sub-days').innerText = days;
+            document.getElementById('sub-days-sidebar').innerText = daysText;
+            
             if(isDemo) startDemoTimer();
         }
-        function logout() { location.reload(); }
 
         function submitPayment(e) {
             e.preventDefault();
@@ -990,15 +956,8 @@
             .catch(e => { alert(e.message); btn.disabled = false; });
         }
 
-        function showSubscription() {
-            document.getElementById('section-login').classList.add('hidden');
-            document.getElementById('section-pricing').classList.remove('hidden');
-            document.getElementById('section-payment').classList.add('hidden');
-        }
-        function backToLogin() {
-            document.getElementById('section-pricing').classList.add('hidden');
-            document.getElementById('section-login').classList.remove('hidden');
-        }
+        function showSubscription() { document.getElementById('section-login').classList.add('hidden'); document.getElementById('section-pricing').classList.remove('hidden'); document.getElementById('section-payment').classList.add('hidden'); }
+        function backToLogin() { document.getElementById('section-pricing').classList.add('hidden'); document.getElementById('section-login').classList.remove('hidden'); }
         function selectPlan(card, price) {
             document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
@@ -1011,20 +970,14 @@
             document.getElementById('section-pricing').classList.add('hidden');
             document.getElementById('section-payment').classList.remove('hidden');
         }
-        function startDemo() { 
-            loginSuccess("Demo Mode", "1 Min Access", true); 
-        }
+        function startDemo() { loginSuccess("Demo Mode", "1 Min Access", true); }
+        function logout() { location.reload(); }
         function startDemoTimer() {
             const bar = document.getElementById('demo-timer-bar');
             bar.style.display = 'block';
-            
             let demoStartTime = localStorage.getItem('nursify_demo_start');
-            if (!demoStartTime) {
-                demoStartTime = Date.now();
-                localStorage.setItem('nursify_demo_start', demoStartTime);
-            } else {
-                demoStartTime = parseInt(demoStartTime);
-            }
+            if (!demoStartTime) { demoStartTime = Date.now(); localStorage.setItem('nursify_demo_start', demoStartTime); } 
+            else { demoStartTime = parseInt(demoStartTime); }
 
             demoInterval = setInterval(() => {
                 const elapsed = Date.now() - demoStartTime;
@@ -1033,10 +986,7 @@
                     document.getElementById('view-app').classList.add('hidden'); 
                     document.getElementById('view-expired').classList.remove('hidden');
                     localStorage.removeItem('nursify_demo_start'); 
-                }
-                else {
-                    bar.style.width = ((DEMO_LIMIT_MS - elapsed) / DEMO_LIMIT_MS * 100) + "%";
-                }
+                } else { bar.style.width = ((DEMO_LIMIT_MS - elapsed) / DEMO_LIMIT_MS * 100) + "%"; }
             }, 100);
         }
         function forceSubscription() {
